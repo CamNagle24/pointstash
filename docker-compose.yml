@@ -1,0 +1,69 @@
+# Local development stack for PointStash.
+#
+# Two services:
+#   - db    — Postgres 16 with a named volume for persistence
+#   - app   — Next.js dev server, hot-reloads from your working tree
+#
+# Quick start:
+#   docker compose up           # both services
+#   docker compose up -d db     # just the database
+#
+# First run (after `up -d db`):
+#   npm install
+#   docker compose run --rm app npm run db:push
+#   docker compose run --rm app npm run db:seed
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pointstash-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pointstash
+      POSTGRES_PASSWORD: pointstash
+      POSTGRES_DB: pointstash
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Optional: uncomment to auto-run any *.sql in this folder on first init.
+      # - ./prisma/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pointstash -d pointstash"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: pointstash-app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://pointstash:pointstash@db:5432/pointstash
+      DIRECT_URL: postgresql://pointstash:pointstash@db:5432/pointstash
+      NEXTAUTH_SECRET: dev-only-secret-change-me
+      NEXTAUTH_URL: http://localhost:3000
+      # Vercel Blob isn't used locally — uploads still hit the API but the
+      # `put` call will fail with a clear error until you set this.
+      BLOB_READ_WRITE_TOKEN: ""
+      CRON_SECRET: dev-cron-secret
+    volumes:
+      # Bind-mount the source tree so dev edits hot-reload inside the container.
+      - .:/app
+      # Keep node_modules + .next inside the container so we don't fight the
+      # host's installs (especially useful on Windows).
+      - app-node-modules:/app/node_modules
+      - app-next-cache:/app/.next
+    command: ["npm", "run", "dev"]
+
+volumes:
+  db-data:
+  app-node-modules:
+  app-next-cache:

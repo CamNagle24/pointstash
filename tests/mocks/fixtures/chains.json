@@ -1,0 +1,11 @@
+[
+  { "slug": "mcdonalds",  "name": "McDonald's",  "color": "#FFC72C", "pointsName": "MyMcDonald's points", "pointsPerDollar": 100, "valuePerPoint": 0.005 },
+  { "slug": "chickfila",  "name": "Chick-fil-A", "color": "#E51636", "pointsName": "Chick-fil-A points",  "pointsPerDollar": 10,  "valuePerPoint": 0.05 },
+  { "slug": "wendys",     "name": "Wendy's",     "color": "#00A3E0", "pointsName": "Wendy's Rewards",     "pointsPerDollar": 10,  "valuePerPoint": 0.025 },
+  { "slug": "tacobell",   "name": "Taco Bell",   "color": "#702082", "pointsName": "Taco Bell Rewards",   "pointsPerDollar": 10,  "valuePerPoint": 0.02 },
+  { "slug": "burgerking", "name": "Burger King", "color": "#FF8732", "pointsName": "Royal Perks crowns",  "pointsPerDollar": 10,  "valuePerPoint": 0.01 },
+  { "slug": "popeyes",    "name": "Popeyes",     "color": "#F15A22", "pointsName": "Popeyes Rewards",     "pointsPerDollar": 10,  "valuePerPoint": 0.02 },
+  { "slug": "subway",     "name": "Subway",      "color": "#008C15", "pointsName": "MVP tokens",          "pointsPerDollar": 4,   "valuePerPoint": 0.025 },
+  { "slug": "dunkin",     "name": "Dunkin'",     "color": "#FF671F", "pointsName": "DD Perks points",     "pointsPerDollar": 10,  "valuePerPoint": 0.005 },
+  { "slug": "starbucks",  "name": "Starbucks",   "color": "#00704A", "pointsName": "Stars",               "pointsPerDollar": 2,   "valuePerPoint": 0.0125 }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "acct_mcd_1",
+    "userId": "user_demo",
+    "chainSlug": "mcdonalds",
+    "loyaltyId": "MCD-29481",
+    "currentPoints": 4850,
+    "lastSynced": "2026-05-09T13:48:00Z",
+    "syncMethod": "MANUAL",
+    "isActive": true,
+    "createdAt": "2026-04-02T19:00:00Z",
+    "updatedAt": "2026-05-09T13:48:00Z",
+    "chain": {
+      "slug": "mcdonalds",
+      "name": "McDonald's",
+      "color": "#FFC72C",
+      "pointsName": "MyMcDonald's points"
+    }
+  },
+  {
+    "id": "acct_sbx_1",
+    "userId": "user_demo",
+    "chainSlug": "starbucks",
+    "loyaltyId": "you@stash.it",
+    "currentPoints": 280,
+    "lastSynced": "2026-05-08T10:12:00Z",
+    "syncMethod": "SCREENSHOT",
+    "isActive": true,
+    "createdAt": "2026-03-15T22:30:00Z",
+    "updatedAt": "2026-05-08T10:12:00Z",
+    "chain": {
+      "slug": "starbucks",
+      "name": "Starbucks",
+      "color": "#00704A",
+      "pointsName": "Stars"
+    }
+  },
+  {
+    "id": "acct_cfa_1",
+    "userId": "user_demo",
+    "chainSlug": "chickfila",
+    "loyaltyId": null,
+    "currentPoints": 320,
+    "lastSynced": "2026-05-09T11:00:00Z",
+    "syncMethod": "MANUAL",
+    "isActive": true,
+    "createdAt": "2026-02-20T18:00:00Z",
+    "updatedAt": "2026-05-09T11:00:00Z",
+    "chain": {
+      "slug": "chickfila",
+      "name": "Chick-fil-A",
+      "color": "#E51636",
+      "pointsName": "Chick-fil-A points"
+    }
+  }
+]

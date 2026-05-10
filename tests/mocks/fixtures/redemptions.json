@@ -1,0 +1,166 @@
+[
+  {
+    "id": "rdm_cfa_1",
+    "chainSlug": "chickfila",
+    "itemName": "8-ct Chicken Nuggets",
+    "pointsCost": 750,
+    "retailPriceCents": 599,
+    "centsPerPoint": 0.799,
+    "category": "ENTREE"
+  },
+  {
+    "id": "rdm_cfa_2",
+    "chainSlug": "chickfila",
+    "itemName": "Original Chicken Sandwich",
+    "pointsCost": 1000,
+    "retailPriceCents": 599,
+    "centsPerPoint": 0.599,
+    "category": "ENTREE"
+  },
+  {
+    "id": "rdm_cfa_3",
+    "chainSlug": "chickfila",
+    "itemName": "Chocolate Chunk Cookie",
+    "pointsCost": 200,
+    "retailPriceCents": 199,
+    "centsPerPoint": 0.995,
+    "category": "DESSERT"
+  },
+  {
+    "id": "rdm_cfa_4",
+    "chainSlug": "chickfila",
+    "itemName": "Mac & Cheese (Medium)",
+    "pointsCost": 600,
+    "retailPriceCents": 449,
+    "centsPerPoint": 0.748,
+    "category": "SIDE"
+  },
+  {
+    "id": "rdm_cfa_5",
+    "chainSlug": "chickfila",
+    "itemName": "Lemonade (Medium)",
+    "pointsCost": 300,
+    "retailPriceCents": 269,
+    "centsPerPoint": 0.897,
+    "category": "DRINK"
+  },
+  {
+    "id": "rdm_cfa_6",
+    "chainSlug": "chickfila",
+    "itemName": "Chick-fil-A Deluxe Sandwich",
+    "pointsCost": 1100,
+    "retailPriceCents": 749,
+    "centsPerPoint": 0.681,
+    "category": "ENTREE"
+  },
+
+  {
+    "id": "rdm_mcd_1",
+    "chainSlug": "mcdonalds",
+    "itemName": "Big Mac",
+    "pointsCost": 6000,
+    "retailPriceCents": 599,
+    "centsPerPoint": 0.0998,
+    "category": "ENTREE"
+  },
+  {
+    "id": "rdm_mcd_2",
+    "chainSlug": "mcdonalds",
+    "itemName": "Medium Fries",
+    "pointsCost": 1500,
+    "retailPriceCents": 349,
+    "centsPerPoint": 0.2327,
+    "category": "SIDE"
+  },
+  {
+    "id": "rdm_mcd_3",
+    "chainSlug": "mcdonalds",
+    "itemName": "McCafé Premium Coffee",
+    "pointsCost": 1500,
+    "retailPriceCents": 199,
+    "centsPerPoint": 0.1327,
+    "category": "DRINK"
+  },
+  {
+    "id": "rdm_mcd_4",
+    "chainSlug": "mcdonalds",
+    "itemName": "Hash Browns",
+    "pointsCost": 1500,
+    "retailPriceCents": 219,
+    "centsPerPoint": 0.146,
+    "category": "SIDE"
+  },
+  {
+    "id": "rdm_mcd_5",
+    "chainSlug": "mcdonalds",
+    "itemName": "McChicken",
+    "pointsCost": 4500,
+    "retailPriceCents": 249,
+    "centsPerPoint": 0.0553,
+    "category": "ENTREE"
+  },
+  {
+    "id": "rdm_mcd_6",
+    "chainSlug": "mcdonalds",
+    "itemName": "Vanilla Cone",
+    "pointsCost": 1500,
+    "retailPriceCents": 159,
+    "centsPerPoint": 0.106,
+    "category": "DESSERT"
+  },
+
+  {
+    "id": "rdm_sbx_1",
+    "chainSlug": "starbucks",
+    "itemName": "Handcrafted Drink",
+    "pointsCost": 200,
+    "retailPriceCents": 545,
+    "centsPerPoint": 2.725,
+    "category": "DRINK"
+  },
+  {
+    "id": "rdm_sbx_2",
+    "chainSlug": "starbucks",
+    "itemName": "Bakery Item",
+    "pointsCost": 100,
+    "retailPriceCents": 295,
+    "centsPerPoint": 2.95,
+    "category": "FOOD"
+  },
+  {
+    "id": "rdm_sbx_3",
+    "chainSlug": "starbucks",
+    "itemName": "Hot Brewed Coffee",
+    "pointsCost": 25,
+    "retailPriceCents": 245,
+    "centsPerPoint": 9.8,
+    "category": "DRINK"
+  },
+  {
+    "id": "rdm_sbx_4",
+    "chainSlug": "starbucks",
+    "itemName": "Hot Tea",
+    "pointsCost": 25,
+    "retailPriceCents": 245,
+    "centsPerPoint": 9.8,
+    "category": "DRINK"
+  },
+  {
+    "id": "rdm_sbx_5",
+    "chainSlug": "starbucks",
+    "itemName": "Sandwich or Salad",
+    "pointsCost": 300,
+    "retailPriceCents": 695,
+    "centsPerPoint": 2.317,
+    "category": "FOOD"
+  },
+  {
+    "id": "rdm_sbx_6",
+    "chainSlug": "starbucks",
+    "itemName": "Mug or Tumbler",
+    "pointsCost": 400,
+    "retailPriceCents": 1495,
+    "centsPerPoint": 3.738,
+    "category": "OTHER"
+  }
+]

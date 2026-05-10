@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>McDonald's Deals (Test Fixture)</title>
+</head>
+<body>
+  <header><h1>This week's deals</h1></header>
+  <main>
+    <section class="deal-tile" data-testid="deal-card-1" data-expires="2099-12-31T23:59:00Z">
+      <h3 class="title">Free Large Fries with $1+ Purchase</h3>
+      <p class="description">Add anything to a $1+ order in the app, fries are free.</p>
+    </section>
+
+    <article class="offer-card" data-testid="deal-card-2" data-expires="2099-06-15T23:59:00Z">
+      <h2>BOGO McChicken</h2>
+      <p>Buy one McChicken, get one free with mobile order.</p>
+    </article>
+
+    <div class="deal-tile" data-testid="deal-card-3" data-expires="2099-09-01T23:59:00Z">
+      <h3>20% Off Any Order Over $20</h3>
+      <!-- description intentionally omitted to test missing-field fallback -->
+    </div>
+
+    <div class="deal-tile" data-testid="deal-card-4" data-expires="2000-01-01T00:00:00Z">
+      <h3>Already-Expired McRib Promo</h3>
+      <p>Should not be returned by scrapeDeals.</p>
+    </div>
+
+    <!-- A noisy element that does NOT match our selectors. -->
+    <div class="banner-ad">
+      <h3>Sign up for our newsletter</h3>
+    </div>
+
+    <!-- A matching tile with no title — should be skipped. -->
+    <div class="offer-card">
+      <p>No title here, ignore me.</p>
+    </div>
+  </main>
+</body>
+</html>

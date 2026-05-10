@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum SyncMethod {
+  MANUAL
+  SCREENSHOT
+  API
+  SCRAPE
+}
+
+enum ChangeReason {
+  MANUAL_UPDATE
+  PURCHASE
+  REDEMPTION
+  PROMOTION
+  SYNC
+}
+
+enum DealType {
+  APP_EXCLUSIVE
+  IN_STORE
+  ONLINE
+  REWARD_MEMBER
+}
+
+enum DiscountType {
+  FREE_ITEM
+  BOGO
+  PERCENTAGE_OFF
+  DOLLAR_OFF
+  POINTS_MULTIPLIER
+}
+
+enum RedemptionCategory {
+  ENTREE
+  SIDE
+  DRINK
+  DESSERT
+  COMBO
+  OTHER
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String?
+  password      String?
+  image         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  accounts      Account[]
+  pointsHistory PointsHistory[]
+}
+
+model Chain {
+  id                String             @id @default(cuid())
+  slug              String             @unique
+  name              String
+  logo              String
+  color             String
+  pointsName        String             @default("points")
+  websiteUrl        String
+  appDeepLink       String?
+  scrapingEnabled   Boolean            @default(true)
+
+  accounts          Account[]
+  deals             Deal[]
+  redemptionOptions RedemptionOption[]
+}
+
+model Account {
+  id            String          @id @default(cuid())
+  userId        String
+  chainId       String
+  loyaltyId     String?
+  currentPoints Int             @default(0)
+  lastSynced    DateTime?
+  syncMethod    SyncMethod      @default(MANUAL)
+  credentials   Json?
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chain         Chain           @relation(fields: [chainId], references: [id])
+  pointsHistory PointsHistory[]
+
+  @@unique([userId, chainId])
+  @@index([userId])
+  @@index([chainId])
+}
+
+model PointsHistory {
+  id             String       @id @default(cuid())
+  accountId      String
+  userId         String
+  previousPoints Int
+  newPoints      Int
+  changeReason   ChangeReason
+  note           String?
+  createdAt      DateTime     @default(now())
+
+  account        Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Deal {
+  id            String       @id @default(cuid())
+  chainId       String
+  title         String
+  description   String?
+  dealType      DealType
+  discountType  DiscountType
+  originalPrice Float?
+  dealPrice     Float?
+  pointsCost    Int?
+  expiresAt     DateTime?
+  startsAt      DateTime?
+  imageUrl      String?
+  sourceUrl     String?
+  isVerified    Boolean      @default(false)
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  chain         Chain        @relation(fields: [chainId], references: [id])
+
+  @@index([chainId, isActive])
+  @@index([expiresAt])
+}
+
+model RedemptionOption {
+  id                   String             @id @default(cuid())
+  chainId              String
+  itemName             String
+  pointsCost           Int
+  estimatedRetailPrice Float
+  centsPerPoint        Float
+  category             RedemptionCategory
+  isAvailable          Boolean            @default(true)
+  lastVerified         DateTime           @default(now())
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  chain                Chain              @relation(fields: [chainId], references: [id])
+
+  @@index([chainId, isAvailable])
+  @@index([chainId, centsPerPoint])
+}

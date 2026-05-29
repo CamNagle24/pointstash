@@ -10,6 +10,16 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
 
 export default function LoginPage() {
+  // useSearchParams() bails static prerender, so the form sits inside a
+  // Suspense boundary. Without the boundary `next build` errors on /login.
+  return (
+    <React.Suspense fallback={null}>
+      <LoginForm />
+    </React.Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("from") || "/dashboard";
@@ -104,6 +114,12 @@ export default function LoginPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-[var(--accent)] hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
             <Input
               id="password"

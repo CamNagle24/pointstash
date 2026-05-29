@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Calculator, Lightbulb, TrendingUp, Loader2 } from "lucide-react";
 import { CHAIN_IDS, CHAINS } from "@/lib/constants";
@@ -15,7 +16,27 @@ import { CrossChainChart } from "@/components/dashboard/CrossChainChart";
 import { cn } from "@/lib/utils";
 
 export default function RedeemPage() {
-  const [selectedChain, setSelectedChain] = React.useState<ChainId>("chickfila");
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" />
+        </div>
+      }
+    >
+      <RedeemPageContent />
+    </React.Suspense>
+  );
+}
+
+function RedeemPageContent() {
+  const searchParams = useSearchParams();
+  const chainParam = searchParams.get("chain");
+  const initialChain: ChainId =
+    chainParam && (CHAIN_IDS as string[]).includes(chainParam)
+      ? (chainParam as ChainId)
+      : "chickfila";
+  const [selectedChain, setSelectedChain] = React.useState<ChainId>(initialChain);
   const { accounts } = useAccounts();
   const { redemptions, isLoading } = useRedemptions();
 

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Camera, Check, Loader2, Type, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, Loader2, Smartphone, Type, Zap } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,13 @@ import { ChainLogo } from "@/components/ui/ChainLogo";
 import { ScreenshotUploader } from "@/components/dashboard/ScreenshotUploader";
 import { CHAIN_IDS, CHAINS } from "@/lib/constants";
 import { hasImplementedConnector } from "@/lib/connectors";
+import {
+  chainHasExtensionSupport,
+  connectChain,
+  detectExtension,
+  ExtensionNotInstalledError,
+  isExtensionConfigured,
+} from "@/lib/extension-bridge";
 import type { ChainId } from "@/types/chain";
 import { useToast } from "@/components/ui/Toaster";
 import { cn } from "@/lib/utils";
@@ -54,6 +61,14 @@ export function AddAccountModal({ open, onOpenChange, onLinked }: Props) {
       return () => clearTimeout(t);
     }
   }, [open]);
+
+  // If the user selects an app-only chain after previously picking API,
+  // bounce them back to MANUAL so the disabled toggle isn't stuck "active".
+  React.useEffect(() => {
+    if (chainSlug && CHAINS[chainSlug].appOnly && syncMethod === "API") {
+      setSyncMethod("MANUAL");
+    }
+  }, [chainSlug, syncMethod]);
 
   const next = () => setStep((s) => (s < 3 ? ((s + 1) as Step) : s));
   const back = () => setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
@@ -112,6 +127,61 @@ export function AddAccountModal({ open, onOpenChange, onLinked }: Props) {
     submit(extracted);
   };
 
+  const onConnectViaExtension = async () => {
+    if (!chainSlug) return;
+    setSubmitting(true);
+    try {
+      const installed = isExtensionConfigured() && (await detectExtension());
+      if (!installed) {
+        const url = process.env.NEXT_PUBLIC_EXTENSION_INSTALL_URL;
+        toast({
+          variant: "error",
+          title: "Install PointStash Sync to continue",
+          description: url
+            ? "We opened the Chrome Web Store in a new tab — add the extension, then click Connect again."
+            : "Add the PointStash Sync extension to Chrome, then click Connect again.",
+        });
+        if (url) window.open(url, "_blank", "noopener");
+        return;
+      }
+
+      const result = await connectChain(chainSlug);
+      if (result.status === "failed") {
+        toast({
+          variant: "error",
+          title: "Couldn't connect",
+          description: result.error,
+        });
+        return;
+      }
+
+      setPoints(result.balance.toString());
+      onLinked?.();
+      next();
+      toast({
+        variant: "success",
+        title: `${CHAINS[chainSlug].name} connected`,
+        description: `${result.balance.toLocaleString()} ${CHAINS[chainSlug].pointsSymbol} synced.`,
+      });
+    } catch (err) {
+      if (err instanceof ExtensionNotInstalledError) {
+        toast({
+          variant: "error",
+          title: "PointStash Sync not installed",
+          description: "Install it from the Chrome Web Store, then try again.",
+        });
+      } else {
+        toast({
+          variant: "error",
+          title: "Connect failed",
+          description: err instanceof Error ? err.message : "Try again in a moment.",
+        });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -149,12 +219,21 @@ export function AddAccountModal({ open, onOpenChange, onLinked }: Props) {
                       aria-pressed={active}
                       onClick={() => setChainSlug(id)}
                       className={cn(
-                        "group flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
+                        "group relative flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
                         active
                           ? "border-[var(--accent)] bg-[rgba(245,158,11,0.06)]"
                           : "border-[var(--border)] hover:bg-[var(--bg-tertiary)]",
                       )}
                     >
+                      {c.appOnly && (
+                        <span
+                          className="absolute right-1.5 top-1.5 flex items-center gap-1 rounded-full bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-[var(--text-muted)] ring-1 ring-[var(--border)]"
+                          title="Points only visible in the mobile app — auto-sync isn't possible."
+                        >
+                          <Smartphone className="h-2.5 w-2.5" />
+                          App only
+                        </span>
+                      )}
                       <ChainLogo slug={id} size="lg" />
                       <p className="text-xs font-medium text-center">{c.name}</p>
                     </button>
@@ -174,13 +253,32 @@ export function AddAccountModal({ open, onOpenChange, onLinked }: Props) {
               >
                 <div className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-tertiary)]/40 p-4">
                   <ChainLogo slug={chainSlug} size="md" />
-                  <div className="min-w-0">
-                    <p className="font-medium">{CHAINS[chainSlug].name}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{CHAINS[chainSlug].name}</p>
+                      {CHAINS[chainSlug].appOnly && (
+                        <span className="flex items-center gap-1 rounded-full bg-[var(--bg-secondary)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-[var(--text-muted)] ring-1 ring-[var(--border)]">
+                          <Smartphone className="h-2.5 w-2.5" />
+                          App only
+                        </span>
+                      )}
+                    </div>
                     <p className="truncate text-xs text-[var(--text-secondary)]">
                       Logging {CHAINS[chainSlug].pointsName}
                     </p>
                   </div>
                 </div>
+
+                {CHAINS[chainSlug].appOnly && (
+                  <div className="flex items-start gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-tertiary)]/30 p-3 text-xs text-[var(--text-secondary)]">
+                    <Smartphone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+                    <span>
+                      {CHAINS[chainSlug].name} only shows points in their mobile app — auto-sync
+                      isn&apos;t possible. Enter your balance manually or upload a screenshot, and
+                      update it whenever you redeem.
+                    </span>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="memberId">
@@ -220,8 +318,18 @@ export function AddAccountModal({ open, onOpenChange, onLinked }: Props) {
                       onClick={() => setSyncMethod("API")}
                       icon={<Zap className="h-4 w-4" />}
                       label="Auto-sync"
-                      hint="Coming soon"
-                      disabled={!hasImplementedConnector(chainSlug)}
+                      hint={
+                        CHAINS[chainSlug].appOnly
+                          ? "App only — N/A"
+                          : chainHasExtensionSupport(chainSlug)
+                            ? "Browser extension"
+                            : "Coming soon"
+                      }
+                      disabled={
+                        CHAINS[chainSlug].appOnly ||
+                        (!hasImplementedConnector(chainSlug) &&
+                          !chainHasExtensionSupport(chainSlug))
+                      }
                     />
                   </div>
                 </div>
@@ -248,15 +356,30 @@ export function AddAccountModal({ open, onOpenChange, onLinked }: Props) {
                   />
                 )}
 
-                {syncMethod === "API" && (
+                {syncMethod === "API" && chainHasExtensionSupport(chainSlug) && (
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-tertiary)]/40 p-4">
+                    <div className="flex items-center gap-2 text-[var(--accent)]">
+                      <Zap className="h-4 w-4" />
+                      <p className="text-sm font-medium">
+                        Auto-sync via PointStash Sync (browser extension)
+                      </p>
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                      Click Connect — we&apos;ll open {CHAINS[chainSlug].name} so you can sign in
+                      normally. Your password stays with {CHAINS[chainSlug].name}; we just read your
+                      balance after you&apos;re in.
+                    </p>
+                  </div>
+                )}
+
+                {syncMethod === "API" && !chainHasExtensionSupport(chainSlug) && (
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-tertiary)]/40 p-4">
                     <div className="flex items-center gap-2 text-[var(--accent)]">
                       <Zap className="h-4 w-4" />
                       <p className="text-sm font-medium">Auto-sync isn&apos;t live for this chain yet.</p>
                     </div>
                     <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                      We&apos;ve scaffolded the connector — once we plug in the API, this account will
-                      refresh on its own. Pick Manual or Screenshot for now.
+                      We&apos;re working on extension support. Pick Manual or Screenshot for now.
                     </p>
                   </div>
                 )}
@@ -321,7 +444,17 @@ export function AddAccountModal({ open, onOpenChange, onLinked }: Props) {
                 {!submitting && <Check className="h-4 w-4" />}
               </Button>
             )}
-            {step === 2 && syncMethod === "API" && (
+            {step === 2 && syncMethod === "API" && chainSlug && chainHasExtensionSupport(chainSlug) && (
+              <Button
+                onClick={onConnectViaExtension}
+                loading={submitting}
+                className="gap-1.5"
+              >
+                {submitting ? "Connecting..." : `Connect ${CHAINS[chainSlug].name}`}
+                {!submitting && <Zap className="h-4 w-4" />}
+              </Button>
+            )}
+            {step === 2 && syncMethod === "API" && chainSlug && !chainHasExtensionSupport(chainSlug) && (
               <Button disabled className="gap-1.5">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Pick another method

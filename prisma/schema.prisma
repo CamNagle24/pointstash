@@ -48,16 +48,48 @@ enum RedemptionCategory {
 }
 
 model User {
-  id            String          @id @default(cuid())
-  email         String          @unique
-  name          String?
-  password      String?
-  image         String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id                  String                @id @default(cuid())
+  email               String                @unique
+  name                String?
+  password            String?
+  image               String?
+  notifyExpiring      Boolean               @default(true)
+  notifyDeals         Boolean               @default(true)
+  notifyDigest        Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 
-  accounts      Account[]
-  pointsHistory PointsHistory[]
+  accounts            Account[]
+  pointsHistory       PointsHistory[]
+  extensionTokens     ExtensionToken[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ExtensionToken {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  label       String?
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Chain {

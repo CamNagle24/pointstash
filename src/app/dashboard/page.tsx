@@ -5,11 +5,15 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { ChainAccountCard } from "@/components/dashboard/ChainAccountCard";
 import { AddAccountCard } from "@/components/dashboard/AddAccountCard";
 import { AddAccountModal } from "@/components/dashboard/AddAccountModal";
+import { AccountDetailsDialog } from "@/components/dashboard/AccountDetailsDialog";
 import { TotalRewardsHeader } from "@/components/dashboard/TotalRewardsHeader";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useRedemptions } from "@/hooks/useRedemptions";
 import { useDeals } from "@/hooks/useDeals";
 import { bestRedemptionFor, bestRedemptionLabel, totalEstimatedDollars } from "@/lib/dashboard";
+import { silentSync } from "@/lib/extension-bridge";
+import { CHAINS } from "@/lib/constants";
+import type { ChainAccount } from "@/types/account";
 import type { ChainId } from "@/types/chain";
 
 export default function DashboardPage() {
@@ -18,6 +22,21 @@ export default function DashboardPage() {
   const { redemptions, isLoading: redemptionsLoading } = useRedemptions();
   const { deals } = useDeals();
   const [modalOpen, setModalOpen] = React.useState(false);
+  const [detailsAccount, setDetailsAccount] = React.useState<ChainAccount | null>(null);
+
+  // Ask the extension to rescan any chain tabs the user already has open and
+  // push fresh balances. Fire-and-forget on mount — silent on failure, just
+  // refetch SWR if anything came back.
+  React.useEffect(() => {
+    let cancelled = false;
+    silentSync().then((result) => {
+      if (cancelled) return;
+      if (result.synced.length > 0) refetchAccounts();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refetchAccounts]);
 
   const total = React.useMemo(
     () => totalEstimatedDollars(accounts, redemptions),
@@ -57,7 +76,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {accounts.map((acc, i) => {
+          {accounts.filter((acc) => CHAINS[acc.chain.slug as ChainId]).map((acc, i) => {
             const best = bestRedemptionFor(acc.chainId, redemptions);
             return (
               <ChainAccountCard
@@ -71,6 +90,7 @@ export default function DashboardPage() {
                 }
                 index={i}
                 onPointsChange={() => refetchAccounts()}
+                onOpenDetails={() => setDetailsAccount(acc)}
               />
             );
           })}
@@ -82,6 +102,15 @@ export default function DashboardPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         onLinked={() => refetchAccounts()}
+      />
+
+      <AccountDetailsDialog
+        open={detailsAccount !== null}
+        onOpenChange={(o) => {
+          if (!o) setDetailsAccount(null);
+        }}
+        account={detailsAccount}
+        onChange={() => refetchAccounts()}
       />
     </div>
   );

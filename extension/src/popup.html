@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>PointStash Sync</title>
+  </head>
+  <body>
+    <header class="header">
+      <h1>PointStash Sync</h1>
+      <span id="status-dot" class="status-dot" data-state="unknown" title="Not connected"></span>
+    </header>
+
+    <p id="status-text" class="muted">Checking connection…</p>
+
+    <ul id="chains" class="chains"></ul>
+
+    <button id="open-dashboard" class="primary">Open PointStash dashboard</button>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

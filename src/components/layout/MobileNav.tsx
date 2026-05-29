@@ -9,7 +9,6 @@ const links = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/deals", label: "Deals" },
   { href: "/dashboard/redeem", label: "Redeem" },
-  { href: "/dashboard/accounts", label: "Accounts" },
   { href: "/dashboard/settings", label: "Settings" },
 ];
 

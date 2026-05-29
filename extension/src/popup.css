@@ -1,0 +1,128 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fff;
+  --fg: #0a0a0a;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #047857;
+  --accent-fg: #fff;
+  --error: #b91c1c;
+  --ok: #10b981;
+  --warn: #f59e0b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0a0a;
+    --fg: #fafafa;
+    --muted: #9ca3af;
+    --border: #262626;
+    --accent: #10b981;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  padding: 16px;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+h1 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.status-dot[data-state="ok"] {
+  background: var(--ok);
+}
+.status-dot[data-state="warn"] {
+  background: var(--warn);
+}
+.status-dot[data-state="err"] {
+  background: var(--error);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+button.primary {
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 500;
+  margin-top: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.chains {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 12px;
+  border-top: 1px solid var(--border);
+}
+
+.chains li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.chains .chain-name {
+  font-weight: 500;
+}
+
+.chain-right {
+  text-align: right;
+}
+
+.chains .chain-balance {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+  display: block;
+}
+
+.chains .chain-state {
+  font-size: 11px;
+  text-transform: lowercase;
+}
+.chains .chain-state[data-state="ok"] {
+  color: var(--ok);
+}
+.chains .chain-state[data-state="needs-login"] {
+  color: var(--warn);
+}
+.chains .chain-state[data-state="err"] {
+  color: var(--error);
+}

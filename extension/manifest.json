@@ -1,0 +1,125 @@
+{
+  "manifest_version": 3,
+  "name": "PointStash Sync",
+  "version": "0.1.0",
+  "description": "Auto-syncs your loyalty balances to PointStash by piggybacking on the chain sessions in your browser.",
+  "permissions": ["storage", "alarms", "tabs"],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "http://localhost:3001/*",
+    "https://pointstash.com/*",
+    "https://*.starbucks.com/*",
+    "https://*.chick-fil-a.com/*",
+    "https://*.wendys.com/*",
+    "https://*.bk.com/*",
+    "https://*.popeyes.com/*",
+    "https://*.dunkindonuts.com/*",
+    "https://*.dunkin.com/*",
+    "https://*.chipotle.com/*",
+    "https://*.pancheros.com/*",
+    "https://*.dairyqueen.com/*",
+    "https://*.culvers.com/*",
+    "https://*.jimmyjohns.com/*",
+    "https://*.buffalowildwings.com/*",
+    "https://*.kfc.com/*",
+    "https://*.pandaexpress.com/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:3000/*",
+      "http://localhost:3001/*",
+      "https://pointstash.com/*",
+      "https://*.pointstash.com/*"
+    ]
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.starbucks.com/*"],
+      "js": ["src/chains/starbucks.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.chick-fil-a.com/*"],
+      "js": ["src/chains/chickfila.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.wendys.com/*"],
+      "js": ["src/chains/wendys.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.bk.com/*"],
+      "js": ["src/chains/burgerking.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.popeyes.com/*"],
+      "js": ["src/chains/popeyes.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.dunkindonuts.com/*", "https://*.dunkin.com/*"],
+      "js": ["src/chains/dunkin.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.chipotle.com/*"],
+      "js": ["src/chains/chipotle.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.pancheros.com/*"],
+      "js": ["src/chains/pancheros.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.dairyqueen.com/*"],
+      "js": ["src/chains/dairyqueen.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.culvers.com/*"],
+      "js": ["src/chains/culvers.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.jimmyjohns.com/*"],
+      "js": ["src/chains/jimmyjohns.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.buffalowildwings.com/*"],
+      "js": ["src/chains/buffalowildwings.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.kfc.com/*"],
+      "js": ["src/chains/kfc.content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.pandaexpress.com/*"],
+      "js": ["src/chains/pandaexpress.content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "PointStash Sync",
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

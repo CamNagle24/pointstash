@@ -8,6 +8,7 @@ import { popeyesConnector } from "./popeyes";
 import { subwayConnector } from "./subway";
 import { dunkinConnector } from "./dunkin";
 import { starbucksConnector } from "./starbucks";
+import { chipotleConnector } from "./chipotle";
 
 export const connectors: Record<string, BaseConnector> = {
   [mcdonaldsConnector.chainSlug]: mcdonaldsConnector,
@@ -19,6 +20,7 @@ export const connectors: Record<string, BaseConnector> = {
   [subwayConnector.chainSlug]: subwayConnector,
   [dunkinConnector.chainSlug]: dunkinConnector,
   [starbucksConnector.chainSlug]: starbucksConnector,
+  [chipotleConnector.chainSlug]: chipotleConnector,
 };
 
 export function getConnector(slug: string): BaseConnector | undefined {

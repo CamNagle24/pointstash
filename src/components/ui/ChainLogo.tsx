@@ -7,12 +7,12 @@ import type { ChainId } from "@/types/chain";
 
 type Size = "xs" | "sm" | "md" | "lg" | "xl";
 
-const sizeMap: Record<Size, { box: string; text: string }> = {
-  xs: { box: "h-6 w-6 rounded-md", text: "text-[10px]" },
-  sm: { box: "h-8 w-8 rounded-lg", text: "text-xs" },
-  md: { box: "h-10 w-10 rounded-xl", text: "text-sm" },
-  lg: { box: "h-14 w-14 rounded-2xl", text: "text-base" },
-  xl: { box: "h-20 w-20 rounded-2xl", text: "text-xl" },
+const sizeMap: Record<Size, { box: string; text: string; px: number }> = {
+  xs: { box: "h-6 w-6 rounded-md", text: "text-[10px]", px: 32 },
+  sm: { box: "h-8 w-8 rounded-lg", text: "text-xs", px: 48 },
+  md: { box: "h-10 w-10 rounded-xl", text: "text-sm", px: 64 },
+  lg: { box: "h-14 w-14 rounded-2xl", text: "text-base", px: 96 },
+  xl: { box: "h-20 w-20 rounded-2xl", text: "text-xl", px: 128 },
 };
 
 const initials: Record<ChainId, string> = {
@@ -25,7 +25,17 @@ const initials: Record<ChainId, string> = {
   subway: "S",
   dunkin: "DD",
   starbucks: "★",
+  chipotle: "C",
+  pancheros: "PA",
+  dairyqueen: "DQ",
+  culvers: "CU",
+  jimmyjohns: "JJ",
+  buffalowildwings: "BW",
+  kfc: "K",
+  pandaexpress: "PX",
 };
+
+const LOGODEV_TOKEN = process.env.NEXT_PUBLIC_LOGODEV_TOKEN;
 
 export function ChainLogo({
   slug,
@@ -38,9 +48,41 @@ export function ChainLogo({
 }) {
   const chain = CHAINS[slug as ChainId];
   const color = chain?.color ?? "#52525b";
-  const initial = initials[slug as ChainId] ?? slug.slice(0, 2).toUpperCase();
-  const { box, text } = sizeMap[size];
+  const { box, text, px } = sizeMap[size];
+  const [errored, setErrored] = React.useState(false);
 
+  const useRemoteLogo = Boolean(LOGODEV_TOKEN && chain?.domain) && !errored;
+
+  if (useRemoteLogo) {
+    // 2x for retina; logo.dev returns square, so size + size works.
+    const url = `https://img.logo.dev/${chain.domain}?token=${LOGODEV_TOKEN}&size=${px * 2}&format=webp`;
+    return (
+      <div
+        className={cn(
+          "relative flex shrink-0 items-center justify-center overflow-hidden",
+          box,
+          className,
+        )}
+        style={{
+          background: "#fff",
+          boxShadow: `0 4px 14px -4px ${color}66, inset 0 0 0 1px rgba(0,0,0,0.06)`,
+        }}
+        aria-label={chain?.name ?? slug}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={chain?.name ?? slug}
+          loading="lazy"
+          decoding="async"
+          onError={() => setErrored(true)}
+          className="h-full w-full object-contain"
+        />
+      </div>
+    );
+  }
+
+  const initial = initials[slug as ChainId] ?? slug.slice(0, 2).toUpperCase();
   return (
     <div
       className={cn(

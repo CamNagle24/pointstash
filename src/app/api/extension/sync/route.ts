@@ -35,22 +35,49 @@ export async function POST(req: Request) {
     });
     if (!chain) return errorJson("Unknown chain", 404);
 
-    // Upsert the linked Account on the fly so first-ever syncs work without
-    // requiring the user to "add" the account in the dashboard first.
-    // If the user previously disconnected (soft-delete: isActive=false), a
-    // fresh resync should reactivate the row — otherwise the new balance
-    // writes to a hidden record and the dashboard never sees it.
-    const account = await db.account.upsert({
+    // Look up the linked Account first so we can tell a brand-new connect
+    // apart from an unchanged ping. (An upsert alone can't: its create branch
+    // sets currentPoints to the balance, which then looks identical to a
+    // no-op.)
+    const existing = await db.account.findUnique({
       where: { userId_chainId: { userId: guard.userId, chainId: chain.id } },
-      create: {
-        userId: guard.userId,
-        chainId: chain.id,
-        currentPoints: parsed.data.balance,
-        syncMethod: "API",
-        lastSynced: new Date(),
-      },
-      update: { isActive: true },
     });
+
+    if (!existing) {
+      // First-ever sync for this chain. Create the account and seed an initial
+      // 0 -> balance history row so the dashboard trend has a baseline point.
+      const created = await db.$transaction(async (tx) => {
+        const account = await tx.account.create({
+          data: {
+            userId: guard.userId,
+            chainId: chain.id,
+            currentPoints: parsed.data.balance,
+            syncMethod: "API",
+            lastSynced: new Date(),
+          },
+          include: { chain: chainSelect() },
+        });
+        await tx.pointsHistory.create({
+          data: {
+            accountId: account.id,
+            userId: guard.userId,
+            previousPoints: 0,
+            newPoints: parsed.data.balance,
+            changeReason: "SYNC",
+            note: parsed.data.raw
+              ? `extension:${JSON.stringify(parsed.data.raw).slice(0, 400)}`
+              : "extension",
+          },
+        });
+        return account;
+      });
+      return NextResponse.json({ updated: true, account: created });
+    }
+
+    // Existing account: reactivate if it was disconnected (soft-delete:
+    // isActive=false), otherwise the new balance writes to a hidden record and
+    // the dashboard never sees it.
+    const account = existing;
 
     if (account.currentPoints === parsed.data.balance) {
       // No-op: don't pollute pointsHistory with identical-balance pings every
@@ -79,6 +106,8 @@ export async function POST(req: Request) {
           currentPoints: parsed.data.balance,
           lastSynced: new Date(),
           syncMethod: "API",
+          // Reactivate if the user had previously disconnected this chain.
+          isActive: true,
         },
         include: { chain: chainSelect() },
       });

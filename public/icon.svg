@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="92.16" fill="url(#bg)"/>
+  <g transform="translate(0, 0) scale(5.12)" fill="none" stroke="#0a0a0b" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- back coin -->
+    <ellipse cx="38" cy="36" rx="26" ry="10" fill="#fde68a"/>
+    <path d="M12 36 L12 50 A26 10 0 0 0 64 50 L64 36"/>
+    <!-- front coin (overlapping) -->
+    <ellipse cx="62" cy="62" rx="26" ry="10" fill="#fde68a"/>
+    <path d="M36 62 L36 76 A26 10 0 0 0 88 76 L88 62"/>
+    <ellipse cx="62" cy="62" rx="26" ry="10" fill="#fde68a"/>
+    <!-- dollar sign on front coin -->
+    <text x="62" y="67" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="900" fill="#0a0a0b" stroke="none" text-anchor="middle">$</text>
+  </g>
+</svg>

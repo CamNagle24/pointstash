@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Tags,
   Coins,
-  Wallet,
   Settings,
   ChevronsLeft,
   ChevronsRight,
@@ -27,7 +26,6 @@ const items: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/deals", label: "Deals", icon: Tags },
   { href: "/dashboard/redeem", label: "Redeem", icon: Coins },
-  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
@@ -43,6 +41,12 @@ export function Sidebar({ collapsed, onToggleCollapse, onCloseMobile }: SidebarP
   const { data: session } = useSession();
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "You";
   const userEmail = session?.user?.email ?? "";
+  // Theme is read from localStorage on the client — unknown during SSR.
+  // Defer the label so the server's "Dark mode" guess can't desync from the
+  // client's actual theme and trigger a hydration mismatch.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  const themeLabel = mounted ? (theme === "light" ? "Dark mode" : "Light mode") : "Theme";
 
   return (
     <motion.aside
@@ -139,8 +143,13 @@ export function Sidebar({ collapsed, onToggleCollapse, onCloseMobile }: SidebarP
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.12 }}
                 className="whitespace-nowrap"
+                // The label depends on the resolved theme, which next-themes
+                // reads from localStorage on the client. Server can't know
+                // it, so the first paint mismatch is expected and harmless —
+                // tell React not to warn.
+                suppressHydrationWarning
               >
-                {theme === "light" ? "Dark mode" : "Light mode"}
+                {themeLabel}
               </motion.span>
             )}
           </AnimatePresence>

@@ -43,7 +43,7 @@ const serwist = new Serwist({
     },
     // Static chain logos and other /public images.
     {
-      matcher: ({ url, sameOrigin, request }) =>
+      matcher: ({ sameOrigin, request }) =>
         sameOrigin && request.destination === "image",
       handler: new StaleWhileRevalidate({
         cacheName: "pointstash-images",

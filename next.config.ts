@@ -12,6 +12,10 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  // Allow a separate build output dir (e.g. NEXT_DIST_DIR=.next-prod) so a
+  // production build can run alongside `next dev` without clobbering its
+  // .next. Defaults to the standard .next.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },

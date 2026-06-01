@@ -304,7 +304,7 @@ const CHAINS: ChainSeed[] = [
     pointsName: "points",
     websiteUrl: "https://www.pancheros.com",
     appDeepLink: "pancheros://",
-    scrapingEnabled: false,
+    scrapingEnabled: true,
     redemptions: [
       { itemName: "Cookie", pointsCost: 200, retail: 1.99, category: "DESSERT" },
       { itemName: "Chips & Salsa", pointsCost: 200, retail: 2.49, category: "SIDE" },
@@ -330,7 +330,7 @@ const CHAINS: ChainSeed[] = [
     pointsName: "points",
     websiteUrl: "https://www.dairyqueen.com",
     appDeepLink: "dairyqueen://",
-    scrapingEnabled: false,
+    scrapingEnabled: true,
     redemptions: [
       { itemName: "Small Cone", pointsCost: 250, retail: 2.49, category: "DESSERT" },
       { itemName: "Dilly Bar", pointsCost: 300, retail: 1.99, category: "DESSERT" },
@@ -356,7 +356,7 @@ const CHAINS: ChainSeed[] = [
     pointsName: "points",
     websiteUrl: "https://www.culvers.com",
     appDeepLink: "culvers://",
-    scrapingEnabled: false,
+    scrapingEnabled: true,
     redemptions: [
       { itemName: "Single Scoop Cake Cone", pointsCost: 300, retail: 2.49, category: "DESSERT" },
       { itemName: "Small Crinkle Cut Fries", pointsCost: 350, retail: 2.49, category: "SIDE" },
@@ -382,7 +382,7 @@ const CHAINS: ChainSeed[] = [
     pointsName: "points",
     websiteUrl: "https://www.jimmyjohns.com",
     appDeepLink: "jimmyjohns://",
-    scrapingEnabled: false,
+    scrapingEnabled: true,
     redemptions: [
       { itemName: "Jumbo Kosher Dill Pickle", pointsCost: 150, retail: 1.49, category: "SIDE" },
       { itemName: "Bag of Chips", pointsCost: 200, retail: 1.79, category: "SIDE" },
@@ -407,7 +407,7 @@ const CHAINS: ChainSeed[] = [
     pointsName: "points",
     websiteUrl: "https://www.buffalowildwings.com",
     appDeepLink: "bww://",
-    scrapingEnabled: false,
+    scrapingEnabled: true,
     redemptions: [
       { itemName: "Fountain Drink", pointsCost: 250, retail: 2.99, category: "DRINK" },
       { itemName: "Side of Fries", pointsCost: 300, retail: 3.99, category: "SIDE" },
@@ -433,7 +433,7 @@ const CHAINS: ChainSeed[] = [
     pointsName: "points",
     websiteUrl: "https://www.kfc.com",
     appDeepLink: "kfc://",
-    scrapingEnabled: false,
+    scrapingEnabled: true,
     redemptions: [
       { itemName: "Biscuit", pointsCost: 150, retail: 1.29, category: "SIDE" },
       { itemName: "Cookie", pointsCost: 200, retail: 1.49, category: "DESSERT" },
@@ -460,7 +460,7 @@ const CHAINS: ChainSeed[] = [
     pointsName: "points",
     websiteUrl: "https://www.pandaexpress.com",
     appDeepLink: "pandaexpress://",
-    scrapingEnabled: false,
+    scrapingEnabled: true,
     redemptions: [
       { itemName: "Fortune Cookies (pack)", pointsCost: 200, retail: 0.99, category: "DESSERT" },
       { itemName: "Chicken Egg Roll", pointsCost: 400, retail: 1.99, category: "SIDE" },

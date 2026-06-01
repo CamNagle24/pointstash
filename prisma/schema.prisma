@@ -38,6 +38,12 @@ enum DiscountType {
   POINTS_MULTIPLIER
 }
 
+enum DealSource {
+  MANUAL
+  LLM
+  AGGREGATOR
+}
+
 enum RedemptionCategory {
   ENTREE
   SIDE
@@ -161,6 +167,7 @@ model Deal {
   startsAt      DateTime?
   imageUrl      String?
   sourceUrl     String?
+  source        DealSource   @default(MANUAL)
   isVerified    Boolean      @default(false)
   isActive      Boolean      @default(true)
   createdAt     DateTime     @default(now())
@@ -169,6 +176,7 @@ model Deal {
   chain         Chain        @relation(fields: [chainId], references: [id])
 
   @@index([chainId, isActive])
+  @@index([chainId, source])
   @@index([expiresAt])
 }
 

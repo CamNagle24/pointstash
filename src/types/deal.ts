@@ -1,4 +1,4 @@
-import type { DealType, DiscountType } from "@prisma/client";
+import type { DealType, DiscountType, DealSource } from "@prisma/client";
 
 /** Mirrors the Prisma `Deal` row returned from `/api/deals`. */
 export interface Deal {
@@ -13,9 +13,13 @@ export interface Deal {
   pointsCost: number | null;
   imageUrl: string | null;
   sourceUrl: string | null;
+  source: DealSource;
+  startsAt: string | null;
   expiresAt: string | null;
+  isVerified: boolean;
   isActive: boolean;
-  scrapedAt: string;
+  createdAt: string;
+  updatedAt: string;
   chain?: {
     id: string;
     slug: string;

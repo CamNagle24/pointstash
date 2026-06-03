@@ -21,37 +21,36 @@ export interface DealSource {
 export const DEAL_SOURCES: Record<string, DealSource> = {
   mcdonalds: {
     type: "html",
-    urls: [
-      "https://www.mcdonalds.com/us/en-us/about-us/newsroom.html",
-      "https://www.reddit.com/r/McDonaldsEmployees/search.json?q=deal+OR+promo&restrict_sr=1&sort=new&limit=25",
-    ],
+    urls: ["https://corporate.mcdonalds.com/corpmcd/our-stories.html"],
   },
   chickfila: {
     type: "html",
-    urls: ["https://www.chick-fil-a.com/news"],
+    urls: ["https://www.chick-fil-a.com/stories"],
   },
   wendys: {
     type: "html",
     urls: [
-      "https://www.wendys.com/feed/press-releases",
-      "https://www.reddit.com/r/wendys/search.json?q=deal+OR+offer&restrict_sr=1&sort=new&limit=25",
+      "https://www.wendys.com/blog",
+      "https://ir.wendys.com/news-and-events/news/default.aspx",
     ],
   },
   tacobell: {
     type: "html",
-    urls: ["https://www.tacobell.com/news"],
+    urls: ["https://www.tacobell.com/newsroom"],
   },
+  // Burger King + Popeyes are Restaurant Brands International — its corporate
+  // newsroom server-renders press releases for both brands.
   burgerking: {
     type: "html",
-    urls: ["https://company.bk.com/news"],
+    urls: ["https://www.rbi.com/English/news/default.aspx"],
   },
   popeyes: {
     type: "html",
-    urls: ["https://www.popeyes.com/"],
+    urls: ["https://www.rbi.com/English/news/default.aspx"],
   },
   subway: {
     type: "html",
-    urls: ["https://www.subway.com/en-us/aboutus/news"],
+    urls: ["https://newsroom.subway.com"],
   },
   dunkin: {
     type: "html",
@@ -59,34 +58,35 @@ export const DEAL_SOURCES: Record<string, DealSource> = {
   },
   starbucks: {
     type: "html",
-    urls: ["https://stories.starbucks.com/press/"],
+    urls: ["https://about.starbucks.com/stories/program/press-resources/"],
   },
   chipotle: {
     type: "html",
-    urls: [
-      "https://newsroom.chipotle.com/news-releases",
-      "https://www.reddit.com/r/Chipotle/search.json?q=deal+OR+promo+OR+free&restrict_sr=1&sort=new&limit=25",
-    ],
-  },
-  pancheros: {
-    type: "html",
-    urls: ["https://www.pancheros.com/news"],
+    urls: ["https://newsroom.chipotle.com/press-releases"],
   },
   dairyqueen: {
     type: "html",
-    urls: ["https://www.dairyqueen.com/en-us/promotions/"],
-  },
-  culvers: {
-    type: "html",
-    urls: ["https://www.culvers.com/news"],
+    urls: ["https://news.dairyqueen.com"],
   },
   jimmyjohns: {
     type: "html",
-    urls: ["https://www.jimmyjohns.com/"],
+    urls: ["https://www.jimmyjohns.com/menu/deals"],
+  },
+  // No reliably-scrapeable public text source today (sites are JS-only SPAs or
+  // block bots): pancheros, culvers, buffalowildwings, kfc, pandaexpress. Their
+  // best-effort official pages stay below; the LLM path returns nothing for
+  // them and the cron falls back to curated MANUAL deals (the hybrid design).
+  pancheros: {
+    type: "html",
+    urls: ["https://www.pancheros.com/"],
+  },
+  culvers: {
+    type: "html",
+    urls: ["https://www.culvers.com/"],
   },
   buffalowildwings: {
     type: "html",
-    urls: ["https://www.buffalowildwings.com/en/promotions/"],
+    urls: ["https://www.buffalowildwings.com/"],
   },
   kfc: {
     type: "html",

@@ -11,6 +11,7 @@
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:seed": "dotenv -e .env.local -- prisma db seed",
+    "db:seed:deals": "dotenv -e .env.local -- tsx prisma/seed-deals.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "prisma:generate": "dotenv -e .env.local -- prisma generate",
     "test": "vitest",
@@ -23,6 +24,7 @@
     "msw:init": "msw init public/ --save"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
     "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "^6.1.0",
     "@radix-ui/react-dialog": "^1.1.4",

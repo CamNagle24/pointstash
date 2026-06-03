@@ -10,7 +10,11 @@ const fetcher = async (url: string): Promise<{ deals: Deal[] }> => {
 };
 
 export function useDeals(chainSlug?: string) {
-  const url = chainSlug ? `/api/deals?chain=${encodeURIComponent(chainSlug)}` : "/api/deals";
+  // Default to soonest-expiring so "This week's deals" leads with what's ending.
+  // limit=100 (the API max) so the client-side chain/type filters see every deal.
+  const params = new URLSearchParams({ sort: "expiring", limit: "100" });
+  if (chainSlug) params.set("chain", chainSlug);
+  const url = `/api/deals?${params.toString()}`;
   const { data, error, isLoading, mutate } = useSWR<{ deals: Deal[] }>(url, fetcher, {
     revalidateOnFocus: false,
   });

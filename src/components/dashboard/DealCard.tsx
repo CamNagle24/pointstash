@@ -15,7 +15,7 @@ import {
   discountTypeLabel,
   discountTypeBadgeVariant,
 } from "@/lib/formatters";
-import { timeUntil } from "@/lib/utils";
+import { timeUntil, dealHref } from "@/lib/utils";
 
 type DealCardProps = {
   chainSlug: ChainId;
@@ -24,6 +24,7 @@ type DealCardProps = {
   dealType: string;
   discountType: string;
   expiresAt: Date;
+  sourceUrl?: string | null;
   index?: number;
 };
 
@@ -34,9 +35,11 @@ export function DealCard({
   dealType,
   discountType,
   expiresAt,
+  sourceUrl,
   index = 0,
 }: DealCardProps) {
   const chain = CHAINS[chainSlug];
+  const href = dealHref(sourceUrl, chain);
   const ttl = timeUntil(expiresAt);
   const expiringSoon = expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 2;
 
@@ -81,9 +84,9 @@ export function DealCard({
             variant="ghost"
             size="sm"
             className="gap-1.5 text-[var(--accent)] hover:text-[var(--accent-hover)] hover:bg-[rgba(245,158,11,0.08)]"
-            onClick={() => chain.appDeepLink && window.open(chain.appDeepLink, "_blank")}
+            onClick={() => window.open(href, "_blank", "noopener,noreferrer")}
           >
-            Open in app
+            {sourceUrl ? "View deal" : "Open in app"}
             <ExternalLink className="h-3.5 w-3.5" />
           </Button>
         </div>

@@ -18,6 +18,35 @@ export function isCronRequest(req: Request): boolean {
   return header === `Bearer ${process.env.CRON_SECRET}`;
 }
 
+/** Parse ADMIN_EMAIL (comma-separated, trimmed, lowercased) into a set. */
+function adminEmails(): Set<string> {
+  return new Set(
+    (process.env.ADMIN_EMAIL ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+/**
+ * Gate a route to admin users. Fails closed: if ADMIN_EMAIL is unset (no
+ * admins configured) every caller is rejected. Email gate is interim until a
+ * real role column exists; the server is the source of truth (the client-side
+ * NEXT_PUBLIC_ADMIN_EMAIL mirror is cosmetic only).
+ */
+export async function requireAdmin(): Promise<GuardResult> {
+  const session = await auth();
+  const id = session?.user?.id;
+  const email = session?.user?.email?.trim().toLowerCase();
+  if (!id) {
+    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  if (!email || !adminEmails().has(email)) {
+    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+  return { userId: id };
+}
+
 export function errorJson(message: string, status: number, details?: unknown) {
   return NextResponse.json(
     details === undefined ? { error: message } : { error: message, details },

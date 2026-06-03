@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, Filter, Loader2, AlertCircle, Search } from "lucide-react";
+import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, CalendarDays } from "lucide-react";
 import { CHAINS, CHAIN_IDS } from "@/lib/constants";
 import { useDeals } from "@/hooks/useDeals";
 import { DealCard } from "@/components/dashboard/DealCard";
+import { DealsCalendar } from "@/components/dashboard/DealsCalendar";
 import { ChainLogo } from "@/components/ui/ChainLogo";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -26,13 +27,17 @@ export default function DealsPage() {
   const { deals, error, isLoading } = useDeals();
   const [chainFilter, setChainFilter] = React.useState<Set<ChainId>>(new Set());
   const [typeFilter, setTypeFilter] = React.useState<Set<string>>(new Set());
+  const [endingSoon, setEndingSoon] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [viewMode, setViewMode] = React.useState<"list" | "calendar">("list");
 
   const filtered = React.useMemo(() => {
+    const soonCutoff = Date.now() + 1000 * 60 * 60 * 24 * 7;
     return deals.filter((d) => {
       const slug = (d.chain?.slug ?? "") as ChainId;
       if (chainFilter.size > 0 && !chainFilter.has(slug)) return false;
       if (typeFilter.size > 0 && !typeFilter.has(d.dealType)) return false;
+      if (endingSoon && !(d.expiresAt && new Date(d.expiresAt).getTime() <= soonCutoff)) return false;
       if (search) {
         const q = search.toLowerCase();
         const haystack = `${d.title} ${d.description ?? ""}`.toLowerCase();
@@ -40,7 +45,7 @@ export default function DealsPage() {
       }
       return true;
     });
-  }, [deals, chainFilter, typeFilter, search]);
+  }, [deals, chainFilter, typeFilter, endingSoon, search]);
 
   const toggleChain = (id: ChainId) => {
     setChainFilter((prev) => {
@@ -84,6 +89,16 @@ export default function DealsPage() {
               className="pl-10"
             />
           </div>
+          <Button
+            type="button"
+            variant={endingSoon ? "primary" : "outline"}
+            size="md"
+            className="gap-2 whitespace-nowrap"
+            onClick={() => setEndingSoon((v) => !v)}
+          >
+            <Clock className="h-4 w-4" />
+            Ending soon
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="md" className="gap-2">
@@ -110,6 +125,28 @@ export default function DealsPage() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <div className="flex rounded-xl border border-[var(--border)] p-0.5">
+            {([
+              ["list", LayoutGrid, "List"],
+              ["calendar", CalendarDays, "Calendar"],
+            ] as const).map(([m, Icon, label]) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setViewMode(m)}
+                aria-label={`${label} view`}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  viewMode === m
+                    ? "bg-[var(--accent)] text-[#0a0a0b]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -161,6 +198,8 @@ export default function DealsPage() {
           <AlertCircle className="h-6 w-6 text-[var(--danger)]" />
           <p className="text-sm text-[var(--danger)]">{error.message}</p>
         </div>
+      ) : viewMode === "calendar" ? (
+        <DealsCalendar deals={filtered} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-20 text-center">
           <p className="font-display text-lg font-semibold">No deals match those filters</p>
@@ -181,6 +220,7 @@ export default function DealsPage() {
               dealType={deal.dealType}
               discountType={deal.discountType}
               expiresAt={deal.expiresAt ? new Date(deal.expiresAt) : new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)}
+              sourceUrl={deal.sourceUrl}
               index={i}
             />
           ))}

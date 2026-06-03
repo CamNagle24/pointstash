@@ -15,6 +15,7 @@ import {
   Moon,
   LogOut,
   User,
+  Shield,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { signOut, useSession } from "next-auth/react";
@@ -29,6 +30,15 @@ const items: NavItem[] = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
+// Public mirror of ADMIN_EMAIL — comma-separated, used only to show/hide the
+// nav link. The server (requireAdmin) is the real gate, so this is cosmetic.
+const ADMIN_EMAILS = new Set(
+  (process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+
 type SidebarProps = {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -41,6 +51,10 @@ export function Sidebar({ collapsed, onToggleCollapse, onCloseMobile }: SidebarP
   const { data: session } = useSession();
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "You";
   const userEmail = session?.user?.email ?? "";
+  const isAdmin = !!userEmail && ADMIN_EMAILS.has(userEmail.toLowerCase());
+  const navItems = isAdmin
+    ? [...items, { href: "/dashboard/admin/deals", label: "Admin", icon: Shield }]
+    : items;
   // Theme is read from localStorage on the client — unknown during SSR.
   // Defer the label so the server's "Dark mode" guess can't desync from the
   // client's actual theme and trigger a hydration mismatch.
@@ -77,7 +91,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onCloseMobile }: SidebarP
       </div>
 
       <nav className={cn("flex-1 space-y-1 px-3 pt-4", collapsed && "px-2")}>
-        {items.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const active =
             href === "/dashboard"
               ? pathname === "/dashboard"

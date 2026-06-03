@@ -42,6 +42,22 @@ export function getExpirationLabel(date: Date | string, now: Date = new Date()):
   return `Expires in ${days} days`;
 }
 
+/**
+ * Best available link for a deal. Prefers the deal's own source page (set for
+ * LLM-extracted deals), then the chain's rewards/deals landing page, then the
+ * bare domain. Note: app-exclusive loyalty rewards have no public per-reward
+ * URL, so this is the most specific public page we can offer — not a deep link
+ * into one reward inside the chain's app.
+ */
+export function dealHref(
+  sourceUrl: string | null | undefined,
+  chain: { appDeepLink?: string; domain: string },
+): string {
+  if (sourceUrl) return sourceUrl;
+  if (chain.appDeepLink) return chain.appDeepLink;
+  return `https://${chain.domain}`;
+}
+
 export function timeUntil(date: Date | string): string {
   const target = typeof date === "string" ? new Date(date) : date;
   const ms = target.getTime() - Date.now();

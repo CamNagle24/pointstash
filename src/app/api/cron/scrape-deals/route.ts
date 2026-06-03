@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isCronRequest, errorJson } from "@/lib/api";
 import { scrapeChain } from "@/lib/scrapers";
+import { replaceAutoDeals, deactivateExpiredDeals } from "@/lib/deals";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -17,10 +18,7 @@ export async function GET(req: NextRequest) {
   let chainsScanned = 0;
 
   try {
-    const deactivated = await db.deal.updateMany({
-      where: { isActive: true, expiresAt: { lt: startedAt } },
-      data: { isActive: false },
-    });
+    const deactivatedCount = await deactivateExpiredDeals(startedAt);
 
     const chainRecords = await db.chain.findMany({
       where: { scrapingEnabled: true },
@@ -29,29 +27,13 @@ export async function GET(req: NextRequest) {
     for (const c of chainRecords) {
       const outcome = await scrapeChain(c.slug);
       if (!outcome.ok) {
+        // Leave this chain's existing auto deals untouched (last-known-good).
         errors.push(`${c.slug}: ${outcome.error}`);
         continue;
       }
       chainsScanned += 1;
-      for (const d of outcome.deals) {
-        await db.deal.create({
-          data: {
-            chainId: c.id,
-            title: d.title,
-            description: d.description ?? null,
-            dealType: d.dealType,
-            discountType: d.discountType,
-            originalPrice: d.originalPrice ?? null,
-            dealPrice: d.dealPrice ?? null,
-            pointsCost: d.pointsCost ?? null,
-            imageUrl: d.imageUrl ?? null,
-            sourceUrl: d.sourceUrl,
-            expiresAt: d.expiresAt ?? null,
-            isActive: true,
-          },
-        });
-        inserted += 1;
-      }
+      // Replace only this chain's auto-sourced deals; curated MANUAL deals stay.
+      inserted += await replaceAutoDeals(c.id, outcome.deals);
     }
 
     return NextResponse.json({
@@ -60,7 +42,7 @@ export async function GET(req: NextRequest) {
       finishedAt: new Date().toISOString(),
       chainsScanned,
       dealsInserted: inserted,
-      dealsDeactivated: deactivated.count,
+      dealsDeactivated: deactivatedCount,
       errors,
     });
   } catch (err) {

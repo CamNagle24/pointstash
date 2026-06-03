@@ -10,9 +10,13 @@ const fetcher = async (url: string): Promise<{ redemptions: RedemptionOption[] }
 };
 
 export function useRedemptions(chainSlug?: string) {
+  // No chainSlug means the caller wants the full cross-chain rate table (the
+  // redeem calculator and dashboard valuation both filter client-side). Ask
+  // for every chain's options instead of the default top-20-by-value, which
+  // would otherwise drop the lower-value chains entirely.
   const url = chainSlug
     ? `/api/redemptions?chain=${encodeURIComponent(chainSlug)}`
-    : "/api/redemptions";
+    : "/api/redemptions?limit=500";
   const { data, error, isLoading, mutate } = useSWR<{ redemptions: RedemptionOption[] }>(
     url,
     fetcher,

@@ -4,6 +4,7 @@ import type { DealType, DiscountType, DealSource } from "@prisma/client";
 export interface Deal {
   id: string;
   chainId: string;
+  userId: string | null;
   title: string;
   description: string | null;
   dealType: DealType;
@@ -13,6 +14,8 @@ export interface Deal {
   pointsCost: number | null;
   imageUrl: string | null;
   sourceUrl: string | null;
+  redeemUrl: string | null;
+  anchorText: string | null;
   source: DealSource;
   startsAt: string | null;
   expiresAt: string | null;

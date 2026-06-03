@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
   dealTypeLabel,
-  dealTypeBadgeVariant,
   discountTypeLabel,
   discountTypeBadgeVariant,
 } from "@/lib/formatters";
@@ -25,6 +24,10 @@ type DealCardProps = {
   discountType: string;
   expiresAt: Date;
   sourceUrl?: string | null;
+  redeemUrl?: string | null;
+  anchorText?: string | null;
+  /** Set when this is the user's own extension-scraped offer. */
+  userId?: string | null;
   index?: number;
 };
 
@@ -36,12 +39,16 @@ export function DealCard({
   discountType,
   expiresAt,
   sourceUrl,
+  redeemUrl,
+  anchorText,
+  userId,
   index = 0,
 }: DealCardProps) {
   const chain = CHAINS[chainSlug];
-  const href = dealHref(sourceUrl, chain);
+  const href = dealHref({ sourceUrl, redeemUrl, anchorText, title }, chain);
   const ttl = timeUntil(expiresAt);
   const expiringSoon = expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 2;
+  const ctaLabel = redeemUrl ? "Redeem" : sourceUrl ? "View deal" : "Open in app";
 
   return (
     <motion.div
@@ -59,9 +66,16 @@ export function DealCard({
               <p className="text-[11px] text-[var(--text-muted)]">{dealTypeLabel[dealType]}</p>
             </div>
           </div>
-          <Badge variant={discountTypeBadgeVariant[discountType] ?? "default"}>
-            {discountTypeLabel[discountType]}
-          </Badge>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {userId && (
+              <Badge variant="success" title="Synced from your account — redeemable now">
+                Yours
+              </Badge>
+            )}
+            <Badge variant={discountTypeBadgeVariant[discountType] ?? "default"}>
+              {discountTypeLabel[discountType]}
+            </Badge>
+          </div>
         </div>
 
         <div className="mt-4 flex-1">
@@ -86,7 +100,7 @@ export function DealCard({
             className="gap-1.5 text-[var(--accent)] hover:text-[var(--accent-hover)] hover:bg-[rgba(245,158,11,0.08)]"
             onClick={() => window.open(href, "_blank", "noopener,noreferrer")}
           >
-            {sourceUrl ? "View deal" : "Open in app"}
+            {ctaLabel}
             <ExternalLink className="h-3.5 w-3.5" />
           </Button>
         </div>

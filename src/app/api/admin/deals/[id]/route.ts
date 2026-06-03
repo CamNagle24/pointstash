@@ -26,6 +26,8 @@ const patchSchema = z.object({
   pointsCost: z.number().int().nonnegative().nullable().optional(),
   imageUrl: z.string().url().nullable().optional(),
   sourceUrl: z.string().url().nullable().optional(),
+  redeemUrl: z.string().url().nullable().optional(),
+  anchorText: z.string().max(200).nullable().optional(),
   startsAt: z.string().datetime().nullable().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
   isActive: z.boolean().optional(),
@@ -62,6 +64,8 @@ export async function PATCH(
         ...(p.pointsCost !== undefined && { pointsCost: p.pointsCost }),
         ...(p.imageUrl !== undefined && { imageUrl: p.imageUrl }),
         ...(p.sourceUrl !== undefined && { sourceUrl: p.sourceUrl }),
+        ...(p.redeemUrl !== undefined && { redeemUrl: p.redeemUrl }),
+        ...(p.anchorText !== undefined && { anchorText: p.anchorText }),
         ...(p.startsAt !== undefined && {
           startsAt: p.startsAt ? new Date(p.startsAt) : null,
         }),

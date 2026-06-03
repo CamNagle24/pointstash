@@ -13,7 +13,7 @@
 
 import { CHAIN_REGISTRY } from "./chains/index.js";
 import { getConfig, setPairing, setChainResult } from "./storage.js";
-import { pushBalance } from "./api.js";
+import { pushBalance, pushOffers } from "./api.js";
 
 const ALARM_NAME = "pointstash-sync";
 const SYNC_PERIOD_MINUTES = 360;
@@ -65,7 +65,101 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
     handleSilentSync(msg.slug).then(sendResponse);
     return true; // keep channel open
   }
+  // Harvest the user's redeemable offers from any open chain tabs and push
+  // them to PointStash. Like SILENT_SYNC, never opens a tab — degrades to an
+  // empty result if no matching tab is open.
+  if (msg?.type === "SYNC_OFFERS") {
+    handleSyncOffers(msg.slug).then(sendResponse);
+    return true; // keep channel open
+  }
 });
+
+async function handleSyncOffers(onlySlug) {
+  const config = await getConfig();
+  if (!config?.token) return { synced: [], skipped: [], error: "Extension not paired" };
+
+  const slugs = onlySlug ? [onlySlug] : Object.keys(CHAIN_REGISTRY);
+  const synced = [];
+  const skipped = [];
+
+  await Promise.all(
+    slugs.map(async (slug) => {
+      const chain = CHAIN_REGISTRY[slug];
+      if (!chain?.hostPattern) {
+        skipped.push(slug);
+        return;
+      }
+      const harvest = await tryHarvestOffersFromTabs(chain);
+      if (!harvest) {
+        skipped.push(slug);
+        return;
+      }
+      try {
+        const res = await pushOffers({
+          chainSlug: slug,
+          pageText: harvest.pageText,
+          pageUrl: harvest.pageUrl,
+        });
+        synced.push({ slug, count: res?.count ?? 0 });
+      } catch (err) {
+        console.error(`[pointstash] sync offers ${slug} push failed`, err);
+        skipped.push(slug);
+      }
+    }),
+  );
+
+  return { synced, skipped };
+}
+
+// Returns { pageText, pageUrl } from the first open tab matching the chain's
+// host pattern that hands us readable offers text, else null. Mirrors
+// tryRescanExistingTabs but for the HARVEST_OFFERS message.
+async function tryHarvestOffersFromTabs(chain) {
+  let tabs;
+  try {
+    tabs = await chrome.tabs.query({ url: chain.hostPattern });
+  } catch {
+    return null;
+  }
+  if (!tabs || tabs.length === 0) return null;
+
+  const HARVEST_TIMEOUT_MS = 6_000;
+  const attempts = tabs.map(
+    (t) =>
+      new Promise((resolve) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            resolve(null);
+          }
+        }, HARVEST_TIMEOUT_MS);
+        try {
+          chrome.tabs.sendMessage(t.id, { type: "HARVEST_OFFERS" }, (resp) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            if (chrome.runtime.lastError || !resp?.ok) {
+              resolve(null);
+              return;
+            }
+            resolve({ pageText: resp.pageText, pageUrl: resp.pageUrl });
+          });
+        } catch {
+          if (!settled) {
+            settled = true;
+            clearTimeout(timer);
+            resolve(null);
+          }
+        }
+      }),
+  );
+
+  for (const result of await Promise.all(attempts)) {
+    if (result) return result;
+  }
+  return null;
+}
 
 async function handleSilentSync(onlySlug) {
   const config = await getConfig();

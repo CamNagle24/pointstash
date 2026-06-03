@@ -190,6 +190,52 @@ export async function silentSync(slug?: string): Promise<SilentSyncResult> {
   });
 }
 
+export type SyncOffersResult = {
+  synced: Array<{ slug: string; count: number }>;
+  skipped: string[];
+  error?: string;
+};
+
+/**
+ * Asks the extension to harvest the user's redeemable offers from any open
+ * chain tabs and push them to PointStash (where the LLM structures them into
+ * personal deals). Never opens a tab; degrades quietly with no extension /
+ * no matching tab open. Pass a slug to limit to one chain.
+ */
+export async function syncOffers(slug?: string): Promise<SyncOffersResult> {
+  const empty: SyncOffersResult = { synced: [], skipped: [] };
+  if (!EXTENSION_ID || typeof window === "undefined" || !window.chrome?.runtime?.sendMessage) {
+    return empty;
+  }
+  return new Promise<SyncOffersResult>((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(empty);
+      }
+    }, 15_000);
+    try {
+      window.chrome!.runtime!.sendMessage(
+        EXTENSION_ID,
+        { type: "SYNC_OFFERS", slug },
+        (response) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve((response as SyncOffersResult | undefined) ?? empty);
+        },
+      );
+    } catch {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(empty);
+      }
+    }
+  });
+}
+
 export async function connectChain(slug: string): Promise<ConnectResult> {
   await ensurePaired();
 

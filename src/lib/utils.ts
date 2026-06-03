@@ -43,17 +43,31 @@ export function getExpirationLabel(date: Date | string, now: Date = new Date()):
 }
 
 /**
- * Best available link for a deal. Prefers the deal's own source page (set for
- * LLM-extracted deals), then the chain's rewards/deals landing page, then the
- * bare domain. Note: app-exclusive loyalty rewards have no public per-reward
- * URL, so this is the most specific public page we can offer — not a deep link
- * into one reward inside the chain's app.
+ * Best available link for a deal, most specific first:
+ *   1. redeemUrl + `#ps-deal=<anchor>` — the page where the offer is actually
+ *      redeemable, with a fragment the extension's scroll-to-deal content
+ *      script uses to find + highlight the exact offer element. Set on
+ *      extension-scraped (and hand-curated) deals.
+ *   2. sourceUrl — the deal's announcement/source page (LLM-extracted deals).
+ *   3. chain.appDeepLink — the chain's rewards/deals landing page.
+ *   4. bare domain.
+ * App-exclusive loyalty rewards have no public per-reward URL, so without a
+ * redeemUrl this is the most specific public page we can offer.
  */
 export function dealHref(
-  sourceUrl: string | null | undefined,
+  deal: {
+    sourceUrl?: string | null;
+    redeemUrl?: string | null;
+    anchorText?: string | null;
+    title?: string | null;
+  },
   chain: { appDeepLink?: string; domain: string },
 ): string {
-  if (sourceUrl) return sourceUrl;
+  if (deal.redeemUrl) {
+    const anchor = deal.anchorText ?? deal.title ?? "";
+    return anchor ? `${deal.redeemUrl}#ps-deal=${encodeURIComponent(anchor)}` : deal.redeemUrl;
+  }
+  if (deal.sourceUrl) return deal.sourceUrl;
   if (chain.appDeepLink) return chain.appDeepLink;
   return `https://${chain.domain}`;
 }

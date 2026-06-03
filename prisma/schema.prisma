@@ -42,6 +42,7 @@ enum DealSource {
   MANUAL
   LLM
   AGGREGATOR
+  EXTENSION
 }
 
 enum RedemptionCategory {
@@ -69,6 +70,7 @@ model User {
   pointsHistory       PointsHistory[]
   extensionTokens     ExtensionToken[]
   passwordResetTokens PasswordResetToken[]
+  deals               Deal[]
 }
 
 model PasswordResetToken {
@@ -156,6 +158,9 @@ model PointsHistory {
 model Deal {
   id            String       @id @default(cuid())
   chainId       String
+  // null = global deal (curated/LLM, shown to everyone). Set = a personal
+  // offer scraped from this user's logged-in rewards page by the extension.
+  userId        String?
   title         String
   description   String?
   dealType      DealType
@@ -167,6 +172,10 @@ model Deal {
   startsAt      DateTime?
   imageUrl      String?
   sourceUrl     String?
+  // Page where the offer is actually redeemable; the "View deal" link appends
+  // #ps-deal=<anchorText> so the extension can scroll to + highlight it.
+  redeemUrl     String?
+  anchorText    String?
   source        DealSource   @default(MANUAL)
   isVerified    Boolean      @default(false)
   isActive      Boolean      @default(true)
@@ -174,9 +183,11 @@ model Deal {
   updatedAt     DateTime     @updatedAt
 
   chain         Chain        @relation(fields: [chainId], references: [id])
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([chainId, isActive])
   @@index([chainId, source])
+  @@index([userId, isActive])
   @@index([expiresAt])
 }
 

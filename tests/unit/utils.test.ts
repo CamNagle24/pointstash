@@ -8,6 +8,7 @@ import {
   pointsToDollars,
   getExpirationLabel,
   timeAgo,
+  dealHref,
 } from "@/lib/utils";
 
 describe("cn", () => {
@@ -70,6 +71,36 @@ describe("getExpirationLabel", () => {
   it("accepts Date objects too", () => {
     const future = new Date("2026-05-14T12:00:00Z");
     expect(getExpirationLabel(future, now)).toBe("Expires in 5 days");
+  });
+});
+
+describe("dealHref", () => {
+  const chain = { appDeepLink: "https://wendys.com/rewards", domain: "wendys.com" };
+
+  it("deep-links to redeemUrl with a #ps-deal anchor (prefers anchorText)", () => {
+    expect(
+      dealHref(
+        { redeemUrl: "https://order.wendys.com/loyalty/rewards", anchorText: "$1 Dave's Single", title: "x" },
+        chain,
+      ),
+    ).toBe("https://order.wendys.com/loyalty/rewards#ps-deal=%241%20Dave's%20Single");
+  });
+
+  it("falls back to the title when anchorText is missing", () => {
+    expect(dealHref({ redeemUrl: "https://order.wendys.com/r", title: "Free Fries" }, chain)).toBe(
+      "https://order.wendys.com/r#ps-deal=Free%20Fries",
+    );
+  });
+
+  it("uses sourceUrl when there's no redeemUrl", () => {
+    expect(dealHref({ sourceUrl: "https://news.example.com/promo", title: "x" }, chain)).toBe(
+      "https://news.example.com/promo",
+    );
+  });
+
+  it("falls back to appDeepLink, then bare domain", () => {
+    expect(dealHref({ title: "x" }, chain)).toBe("https://wendys.com/rewards");
+    expect(dealHref({ title: "x" }, { domain: "kfc.com" })).toBe("https://kfc.com");
   });
 });
 

@@ -56,6 +56,8 @@ const formSchema = z.object({
   pointsCost: optionalInt,
   imageUrl: z.string().url("Must be a URL").optional().or(z.literal("")),
   sourceUrl: z.string().url("Must be a URL").optional().or(z.literal("")),
+  redeemUrl: z.string().url("Must be a URL").optional().or(z.literal("")),
+  anchorText: z.string().max(200).optional(),
   startsAt: z.string().optional(),
   expiresAt: z.string().optional(),
 });
@@ -265,6 +267,8 @@ function DealForm({
           pointsCost: editing.pointsCost ?? undefined,
           imageUrl: editing.imageUrl ?? "",
           sourceUrl: editing.sourceUrl ?? "",
+          redeemUrl: editing.redeemUrl ?? "",
+          anchorText: editing.anchorText ?? "",
           startsAt: toLocalInput(editing.startsAt),
           expiresAt: toLocalInput(editing.expiresAt),
         }
@@ -285,11 +289,14 @@ function DealForm({
       pointsCost: parsed.pointsCost,
       imageUrl: parsed.imageUrl || undefined,
       sourceUrl: parsed.sourceUrl || undefined,
+      redeemUrl: parsed.redeemUrl || undefined,
+      anchorText: parsed.anchorText || undefined,
       startsAt: toIso(parsed.startsAt),
       expiresAt: toIso(parsed.expiresAt),
     };
 
     // Editing keeps source MANUAL — the chain is fixed, so PATCH omits it.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { chainSlug, ...patchPayload } = payload;
     const res = editing
       ? await fetch(`/api/admin/deals/${editing.id}`, {
@@ -301,6 +308,8 @@ function DealForm({
             description: payload.description ?? null,
             imageUrl: payload.imageUrl ?? null,
             sourceUrl: payload.sourceUrl ?? null,
+            redeemUrl: payload.redeemUrl ?? null,
+            anchorText: payload.anchorText ?? null,
             originalPrice: payload.originalPrice ?? null,
             dealPrice: payload.dealPrice ?? null,
             pointsCost: payload.pointsCost ?? null,
@@ -423,11 +432,29 @@ function DealForm({
 
         <div className="space-y-1.5">
           <Label htmlFor="sourceUrl">Source URL</Label>
-          <Input id="sourceUrl" placeholder="https://…" {...register("sourceUrl")} />
+          <Input id="sourceUrl" placeholder="https://… (announcement / where the deal was found)" {...register("sourceUrl")} />
           {errors.sourceUrl && (
             <p className="text-xs text-[var(--danger)]">{errors.sourceUrl.message}</p>
           )}
         </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="redeemUrl">Redeem URL</Label>
+            <Input id="redeemUrl" placeholder="https://… (exact redeemable page)" {...register("redeemUrl")} />
+            {errors.redeemUrl && (
+              <p className="text-xs text-[var(--danger)]">{errors.redeemUrl.message}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="anchorText">Scroll-to text</Label>
+            <Input id="anchorText" placeholder="On-page text (defaults to title)" {...register("anchorText")} />
+          </div>
+        </div>
+        <p className="text-xs text-[var(--text-muted)]">
+          Set <strong>Redeem URL</strong> to deep-link clicks to the exact page; the extension
+          scrolls to and highlights the element matching <strong>Scroll-to text</strong>.
+        </p>
 
         {submitError && <p className="text-sm text-[var(--danger)]">{submitError}</p>}
       </DialogBody>

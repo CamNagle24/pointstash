@@ -37,3 +37,10 @@ export async function pushBalance({ chainSlug, balance, raw }) {
     body: { chainSlug, balance, raw },
   });
 }
+
+export async function pushOffers({ chainSlug, pageText, pageUrl }) {
+  return authedFetch("/api/extension/sync-offers", {
+    method: "POST",
+    body: { chainSlug, pageText, pageUrl },
+  });
+}

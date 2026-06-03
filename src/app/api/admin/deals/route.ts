@@ -27,6 +27,8 @@ const createSchema = z.object({
   pointsCost: z.number().int().nonnegative().optional(),
   imageUrl: z.string().url().optional(),
   sourceUrl: z.string().url().optional(),
+  redeemUrl: z.string().url().optional(),
+  anchorText: z.string().max(200).optional(),
   startsAt: z.string().datetime().optional(),
   expiresAt: z.string().datetime().optional(),
 });
@@ -90,6 +92,8 @@ export async function POST(req: NextRequest) {
         pointsCost: d.pointsCost ?? null,
         imageUrl: d.imageUrl ?? null,
         sourceUrl: d.sourceUrl ?? null,
+        redeemUrl: d.redeemUrl ?? null,
+        anchorText: d.anchorText ?? null,
         startsAt: d.startsAt ? new Date(d.startsAt) : null,
         expiresAt: d.expiresAt ? new Date(d.expiresAt) : null,
         source: "MANUAL",

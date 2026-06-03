@@ -12,6 +12,10 @@ interface DealSeed {
   pointsCost?: number;
   /** Days from now the deal expires. */
   daysOut: number;
+  /** Page where the offer is redeemable; the deal link deep-links + scrolls here. */
+  redeemUrl?: string;
+  /** On-page text to scroll to / highlight (defaults to the title at link time). */
+  anchorText?: string;
 }
 
 // Hand-curated, realistic app/loyalty deals per chain. These are MANUAL +
@@ -331,6 +335,8 @@ async function main() {
         dealPrice: d.dealPrice ?? null,
         pointsCost: d.pointsCost ?? null,
         expiresAt: expiresInDays(d.daysOut),
+        redeemUrl: d.redeemUrl ?? null,
+        anchorText: d.anchorText ?? null,
         source: "MANUAL",
         isVerified: true,
         isActive: true,

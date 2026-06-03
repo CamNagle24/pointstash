@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, CalendarDays } from "lucide-react";
 import { CHAINS, CHAIN_IDS } from "@/lib/constants";
 import { useDeals } from "@/hooks/useDeals";
+import { syncOffers } from "@/lib/extension-bridge";
 import { DealCard } from "@/components/dashboard/DealCard";
 import { DealsCalendar } from "@/components/dashboard/DealsCalendar";
 import { ChainLogo } from "@/components/ui/ChainLogo";
@@ -24,7 +25,20 @@ import { cn } from "@/lib/utils";
 const dealTypes = ["APP_EXCLUSIVE", "IN_STORE", "ONLINE", "REWARD_MEMBER"];
 
 export default function DealsPage() {
-  const { deals, error, isLoading } = useDeals();
+  const { deals, error, isLoading, mutate } = useDeals();
+
+  // On mount, ask the extension to harvest the user's redeemable offers from
+  // any open chain tabs; refresh the feed if it synced anything. Quietly no-ops
+  // when the extension isn't installed or no chain tab is open.
+  React.useEffect(() => {
+    let cancelled = false;
+    syncOffers().then((res) => {
+      if (!cancelled && res.synced.length > 0) mutate();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mutate]);
   const [chainFilter, setChainFilter] = React.useState<Set<ChainId>>(new Set());
   const [typeFilter, setTypeFilter] = React.useState<Set<string>>(new Set());
   const [endingSoon, setEndingSoon] = React.useState(false);
@@ -50,14 +64,16 @@ export default function DealsPage() {
   const toggleChain = (id: ChainId) => {
     setChainFilter((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
   const toggleType = (t: string) => {
     setTypeFilter((prev) => {
       const next = new Set(prev);
-      next.has(t) ? next.delete(t) : next.add(t);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
       return next;
     });
   };
@@ -221,6 +237,9 @@ export default function DealsPage() {
               discountType={deal.discountType}
               expiresAt={deal.expiresAt ? new Date(deal.expiresAt) : new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)}
               sourceUrl={deal.sourceUrl}
+              redeemUrl={deal.redeemUrl}
+              anchorText={deal.anchorText}
+              userId={deal.userId}
               index={i}
             />
           ))}

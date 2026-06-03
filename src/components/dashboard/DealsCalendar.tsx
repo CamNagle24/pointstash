@@ -78,7 +78,7 @@ function toSpan(deal: Deal): Span | null {
 }
 
 function openDeal(deal: Deal, slug: ChainId) {
-  const href = dealHref(deal.sourceUrl, CHAINS[slug]);
+  const href = dealHref(deal, CHAINS[slug]);
   window.open(href, "_blank", "noopener,noreferrer");
 }
 

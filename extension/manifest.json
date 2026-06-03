@@ -106,6 +106,27 @@
       "matches": ["https://*.pandaexpress.com/*"],
       "js": ["src/chains/pandaexpress.content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.starbucks.com/*",
+        "https://*.chick-fil-a.com/*",
+        "https://*.wendys.com/*",
+        "https://*.bk.com/*",
+        "https://*.popeyes.com/*",
+        "https://*.dunkindonuts.com/*",
+        "https://*.dunkin.com/*",
+        "https://*.chipotle.com/*",
+        "https://*.pancheros.com/*",
+        "https://*.dairyqueen.com/*",
+        "https://*.culvers.com/*",
+        "https://*.jimmyjohns.com/*",
+        "https://*.buffalowildwings.com/*",
+        "https://*.kfc.com/*",
+        "https://*.pandaexpress.com/*"
+      ],
+      "js": ["src/scroll-to-deal.js", "src/offers-harvest.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {

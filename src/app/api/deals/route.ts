@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { chainSelect, parseIntParam, errorJson } from "@/lib/api";
 
 export const runtime = "nodejs";
@@ -31,13 +32,25 @@ export async function GET(req: NextRequest) {
       .map((p) => p.data!);
 
     const now = new Date();
+
+    // Hybrid feed: everyone sees global deals (userId=null); a signed-in user
+    // also sees their own extension-scraped personal deals. Combined with AND
+    // so the ownership OR doesn't collide with the expiry OR.
+    const session = await auth();
+    const userId = session?.user?.id;
+    const ownership: Prisma.DealWhereInput = userId
+      ? { OR: [{ userId: null }, { userId }] }
+      : { userId: null };
+
     const where: Prisma.DealWhereInput = {
-      ...(activeOnly && {
-        isActive: true,
-        OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
-      }),
-      ...(chains.length > 0 && { chain: { slug: { in: chains } } }),
-      ...(types.length > 0 && { dealType: { in: types } }),
+      AND: [
+        ownership,
+        ...(activeOnly
+          ? [{ isActive: true, OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] }]
+          : []),
+        ...(chains.length > 0 ? [{ chain: { slug: { in: chains } } }] : []),
+        ...(types.length > 0 ? [{ dealType: { in: types } }] : []),
+      ],
     };
 
     const orderBy: Prisma.DealOrderByWithRelationInput =

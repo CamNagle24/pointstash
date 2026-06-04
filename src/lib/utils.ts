@@ -43,16 +43,19 @@ export function getExpirationLabel(date: Date | string, now: Date = new Date()):
 }
 
 /**
- * Best available link for a deal, most specific first:
- *   1. redeemUrl + `#ps-deal=<anchor>` — the page where the offer is actually
- *      redeemable, with a fragment the extension's scroll-to-deal content
- *      script uses to find + highlight the exact offer element. Set on
- *      extension-scraped (and hand-curated) deals.
+ * Best available link for a deal, most specific first. Where there's a page the
+ * offer actually lives on, we append `#ps-deal=<anchor>` — a fragment the
+ * extension's scroll-to-deal content script uses to find + highlight the exact
+ * offer element on the (logged-in) page.
+ *   1. redeemUrl — the explicit redeemable page (extension-scraped or
+ *      hand-curated). Gets the scroll anchor.
  *   2. sourceUrl — the deal's announcement/source page (LLM-extracted deals).
- *   3. chain.appDeepLink — the chain's rewards/deals landing page.
- *   4. bare domain.
- * App-exclusive loyalty rewards have no public per-reward URL, so without a
- * redeemUrl this is the most specific public page we can offer.
+ *      Opened as-is; there's no specific element to scroll to on an article.
+ *   3. chain.appDeepLink — the chain's rewards/offers page. App-exclusive
+ *      loyalty offers have no per-offer URL, but the offer title appears on the
+ *      logged-in rewards page, so we still attach the scroll anchor and let the
+ *      content script find it (no-op + plain page if it can't).
+ *   4. bare domain — no known rewards page, nothing meaningful to scroll to.
  */
 export function dealHref(
   deal: {
@@ -63,12 +66,13 @@ export function dealHref(
   },
   chain: { appDeepLink?: string; domain: string },
 ): string {
-  if (deal.redeemUrl) {
-    const anchor = deal.anchorText ?? deal.title ?? "";
-    return anchor ? `${deal.redeemUrl}#ps-deal=${encodeURIComponent(anchor)}` : deal.redeemUrl;
-  }
+  const anchor = deal.anchorText ?? deal.title ?? "";
+  const withAnchor = (base: string) =>
+    anchor ? `${base}#ps-deal=${encodeURIComponent(anchor)}` : base;
+
+  if (deal.redeemUrl) return withAnchor(deal.redeemUrl);
   if (deal.sourceUrl) return deal.sourceUrl;
-  if (chain.appDeepLink) return chain.appDeepLink;
+  if (chain.appDeepLink) return withAnchor(chain.appDeepLink);
   return `https://${chain.domain}`;
 }
 

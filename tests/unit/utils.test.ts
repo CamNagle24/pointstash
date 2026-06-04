@@ -98,9 +98,18 @@ describe("dealHref", () => {
     );
   });
 
-  it("falls back to appDeepLink, then bare domain", () => {
-    expect(dealHref({ title: "x" }, chain)).toBe("https://wendys.com/rewards");
+  it("falls back to appDeepLink with a scroll anchor derived from the title", () => {
+    expect(dealHref({ title: "$1 Dave's Single" }, chain)).toBe(
+      "https://wendys.com/rewards#ps-deal=%241%20Dave's%20Single",
+    );
+  });
+
+  it("uses bare domain (no anchor) when there's no appDeepLink", () => {
     expect(dealHref({ title: "x" }, { domain: "kfc.com" })).toBe("https://kfc.com");
+  });
+
+  it("omits the anchor when there's no anchorText or title", () => {
+    expect(dealHref({}, chain)).toBe("https://wendys.com/rewards");
   });
 });
 

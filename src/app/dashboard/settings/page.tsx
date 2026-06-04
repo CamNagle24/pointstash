@@ -163,8 +163,8 @@ export default function SettingsPage() {
         </div>
         <div className="space-y-3">
           <SettingRow
-            title="Expiring points"
-            description="Alert me when points are within 7 days of expiring."
+            title="Expiring deals"
+            description="Email me when deals for my chains are about to expire (within 24 hours)."
             checked={user.notifyExpiring}
             onChange={(v) => togglePref("notifyExpiring", v)}
           />

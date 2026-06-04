@@ -5,8 +5,7 @@ import { db } from "@/lib/db";
 import { errorJson } from "@/lib/api";
 import { requireExtensionAuth } from "@/lib/extension-auth";
 import { extractDealsFromText } from "@/lib/scrapers/llm-extract";
-import { CHAINS } from "@/lib/constants";
-import type { ChainId } from "@/types/chain";
+import { hostBelongsToChain } from "@/lib/chain-host";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,23 +15,6 @@ const syncSchema = z.object({
   pageText: z.string().min(40).max(40_000),
   pageUrl: z.string().url(),
 });
-
-// dunkin serves both domains; everything else uses its single CHAINS domain.
-const EXTRA_HOSTS: Record<string, string[]> = { dunkin: ["dunkin.com"] };
-
-/** True if `pageUrl`'s host belongs to the given chain (suffix match). */
-function hostBelongsToChain(pageUrl: string, slug: string): boolean {
-  let host: string;
-  try {
-    host = new URL(pageUrl).hostname.toLowerCase();
-  } catch {
-    return false;
-  }
-  const domains = [CHAINS[slug as ChainId]?.domain, ...(EXTRA_HOSTS[slug] ?? [])].filter(
-    Boolean,
-  ) as string[];
-  return domains.some((d) => host === d || host.endsWith("." + d));
-}
 
 // POST /api/extension/sync-offers
 // Auth: Bearer token from the extension. Takes the rendered text of the user's

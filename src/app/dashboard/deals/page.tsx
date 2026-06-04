@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, CalendarDays } from "lucide-react";
 import { CHAINS, CHAIN_IDS } from "@/lib/constants";
 import { useDeals } from "@/hooks/useDeals";
+import { useAccounts } from "@/hooks/useAccounts";
 import { syncOffers } from "@/lib/extension-bridge";
 import { DealCard } from "@/components/dashboard/DealCard";
 import { DealsCalendar } from "@/components/dashboard/DealsCalendar";
@@ -26,6 +27,7 @@ const dealTypes = ["APP_EXCLUSIVE", "IN_STORE", "ONLINE", "REWARD_MEMBER"];
 
 export default function DealsPage() {
   const { deals, error, isLoading, mutate } = useDeals();
+  const { accounts } = useAccounts();
 
   // On mount, ask the extension to harvest the user's redeemable offers from
   // any open chain tabs; refresh the feed if it synced anything. Quietly no-ops
@@ -40,6 +42,22 @@ export default function DealsPage() {
     };
   }, [mutate]);
   const [chainFilter, setChainFilter] = React.useState<Set<ChainId>>(new Set());
+
+  // Personalize the feed: once the user's linked accounts load, default the
+  // chain filter to the chains they actually track. Seeded once so it never
+  // fights the user's own filter clicks; "All chains" clears it to show every
+  // chain. Users with no linked accounts keep the unfiltered (all chains) view.
+  const seededRef = React.useRef(false);
+  React.useEffect(() => {
+    if (seededRef.current || accounts.length === 0) return;
+    const linked = accounts
+      .map((a) => a.chain.slug as ChainId)
+      .filter((slug) => CHAINS[slug]);
+    if (linked.length > 0) {
+      seededRef.current = true;
+      setChainFilter(new Set(linked));
+    }
+  }, [accounts]);
   const [typeFilter, setTypeFilter] = React.useState<Set<string>>(new Set());
   const [endingSoon, setEndingSoon] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -90,7 +108,9 @@ export default function DealsPage() {
         <p className="text-sm text-[var(--text-secondary)]">
           {isLoading
             ? "Loading deals…"
-            : `${filtered.length} active deal${filtered.length === 1 ? "" : "s"} across your chains`}
+            : `${filtered.length} active deal${filtered.length === 1 ? "" : "s"} ${
+                chainFilter.size > 0 ? "for your chains" : "across all chains"
+              }`}
         </p>
       </header>
 

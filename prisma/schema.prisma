@@ -71,6 +71,26 @@ model User {
   extensionTokens     ExtensionToken[]
   passwordResetTokens PasswordResetToken[]
   deals               Deal[]
+  dealReminders       DealReminder[]
+}
+
+// Records that we've emailed a user about a soon-expiring deal, so the daily
+// cron doesn't re-send. Keyed on a STABLE logical identity (chainSlug:title),
+// not dealId, because deals churn: EXTENSION deals are delete-then-inserted on
+// every sync and LLM deals are recreated daily by the scrape cron, so the same
+// offer gets a new id repeatedly. sentAt lets us expire old records so a
+// genuinely recurring promo can remind again after a while.
+model DealReminder {
+  id        String   @id @default(cuid())
+  userId    String
+  // `${chainSlug}:${normalized title}` — survives deal row re-creation.
+  dealKey   String
+  sentAt    DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dealKey])
+  @@index([userId])
 }
 
 model PasswordResetToken {

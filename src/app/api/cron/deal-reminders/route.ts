@@ -3,7 +3,10 @@ import { db } from "@/lib/db";
 import { isCronRequest, errorJson } from "@/lib/api";
 import {
   groupExpiringDealsByUser,
+  removeAlreadyReminded,
+  reminderKey,
   REMINDER_WINDOW_HOURS,
+  REMINDER_DEDUPE_DAYS,
   type ReminderDeal,
   type ReminderUser,
 } from "@/lib/deal-reminders";
@@ -73,7 +76,26 @@ export async function GET(req: NextRequest) {
       sourceUrl: d.sourceUrl,
     }));
 
-    const reminders = groupExpiringDealsByUser(users, deals, now);
+    const grouped = groupExpiringDealsByUser(users, deals, now);
+
+    // Idempotency: drop deals we've already emailed each user about within the
+    // dedupe window, so widening REMINDER_WINDOW_HOURS doesn't re-send daily.
+    const dedupeSince = new Date(now.getTime() - REMINDER_DEDUPE_DAYS * 24 * 60 * 60 * 1000);
+    const candidateUserIds = grouped.map((g) => g.user.id);
+    const sentRows = candidateUserIds.length
+      ? await db.dealReminder.findMany({
+          where: { userId: { in: candidateUserIds }, sentAt: { gte: dedupeSince } },
+          select: { userId: true, dealKey: true },
+        })
+      : [];
+    const sentByUser = new Map<string, Set<string>>();
+    for (const row of sentRows) {
+      const set = sentByUser.get(row.userId) ?? new Set<string>();
+      set.add(row.dealKey);
+      sentByUser.set(row.userId, set);
+    }
+
+    const reminders = removeAlreadyReminded(grouped, sentByUser);
 
     let sent = 0;
     let logged = 0;
@@ -88,6 +110,16 @@ export async function GET(req: NextRequest) {
         });
         if (result === "sent") sent += 1;
         else logged += 1;
+
+        // Record what we just reminded about (refresh sentAt on re-sends past
+        // the dedupe window via delete-then-insert, the codebase's idiom).
+        const keys = r.deals.map((d) => reminderKey(d));
+        await db.$transaction([
+          db.dealReminder.deleteMany({ where: { userId: r.user.id, dealKey: { in: keys } } }),
+          db.dealReminder.createMany({
+            data: keys.map((dealKey) => ({ userId: r.user.id, dealKey, sentAt: now })),
+          }),
+        ]);
       } catch (e) {
         errors.push(`${r.user.email}: ${e instanceof Error ? e.message : "unknown"}`);
       }

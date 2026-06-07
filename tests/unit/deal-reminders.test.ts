@@ -2,11 +2,14 @@ import { describe, it, expect } from "vitest";
 import {
   isExpiringSoon,
   groupExpiringDealsByUser,
+  removeAlreadyReminded,
+  reminderKey,
   reminderDealLink,
   expiresInLabel,
   REMINDER_WINDOW_HOURS,
   type ReminderDeal,
   type ReminderUser,
+  type UserReminder,
 } from "@/lib/deal-reminders";
 
 const now = new Date("2026-06-03T12:00:00Z");
@@ -29,8 +32,8 @@ function deal(over: Partial<ReminderDeal> & { id: string }): ReminderDeal {
 describe("isExpiringSoon", () => {
   it("is true within the window and false outside it", () => {
     expect(isExpiringSoon(deal({ id: "a", expiresAt: hoursFromNow(5) }), now)).toBe(true);
-    expect(isExpiringSoon(deal({ id: "b", expiresAt: hoursFromNow(23) }), now)).toBe(true);
-    expect(isExpiringSoon(deal({ id: "c", expiresAt: hoursFromNow(48) }), now)).toBe(false);
+    expect(isExpiringSoon(deal({ id: "b", expiresAt: hoursFromNow(71) }), now)).toBe(true);
+    expect(isExpiringSoon(deal({ id: "c", expiresAt: hoursFromNow(80) }), now)).toBe(false);
   });
 
   it("is false for already-expired deals", () => {
@@ -38,11 +41,12 @@ describe("isExpiringSoon", () => {
   });
 
   it("honors a custom window", () => {
-    expect(isExpiringSoon(deal({ id: "e", expiresAt: hoursFromNow(40) }), now, 48)).toBe(true);
+    expect(isExpiringSoon(deal({ id: "e", expiresAt: hoursFromNow(40) }), now, 24)).toBe(false);
+    expect(isExpiringSoon(deal({ id: "f", expiresAt: hoursFromNow(40) }), now, 48)).toBe(true);
   });
 
-  it("defaults to the 24h window constant", () => {
-    expect(REMINDER_WINDOW_HOURS).toBe(24);
+  it("defaults to a 72h window constant", () => {
+    expect(REMINDER_WINDOW_HOURS).toBe(72);
   });
 });
 
@@ -98,7 +102,7 @@ describe("groupExpiringDealsByUser", () => {
   it("drops deals outside the window before grouping", () => {
     const deals = [
       deal({ id: "soon", chainSlug: "wendys", expiresAt: hoursFromNow(3) }),
-      deal({ id: "later", chainSlug: "wendys", expiresAt: hoursFromNow(40) }),
+      deal({ id: "later", chainSlug: "wendys", expiresAt: hoursFromNow(80) }),
     ];
     const result = groupExpiringDealsByUser([alice], deals, now);
     expect(result[0].deals.map((d) => d.id)).toEqual(["soon"]);
@@ -111,6 +115,58 @@ describe("groupExpiringDealsByUser", () => {
     ];
     const result = groupExpiringDealsByUser([alice], deals, now);
     expect(result[0].deals.map((d) => d.id)).toEqual(["early", "late"]);
+  });
+});
+
+describe("reminderKey", () => {
+  it("is a stable chainSlug:title key, independent of the (churning) deal id", () => {
+    const a = deal({ id: "row-1", chainSlug: "wendys", title: "$1 Frosty" });
+    const b = deal({ id: "row-2", chainSlug: "wendys", title: "$1 Frosty" });
+    expect(reminderKey(a)).toBe(reminderKey(b));
+    expect(reminderKey(a)).toBe("wendys:$1 frosty");
+  });
+
+  it("normalizes case and whitespace so re-scrapes match", () => {
+    expect(reminderKey(deal({ id: "x", chainSlug: "wendys", title: "  Free Fries  " }))).toBe(
+      reminderKey(deal({ id: "y", chainSlug: "wendys", title: "free fries" })),
+    );
+  });
+});
+
+describe("removeAlreadyReminded", () => {
+  const user: ReminderUser = { id: "u", email: "u@x.com", name: null, chainSlugs: ["wendys"] };
+  const grouped: UserReminder[] = [
+    {
+      user,
+      deals: [
+        deal({ id: "1", chainSlug: "wendys", title: "Free Fries" }),
+        deal({ id: "2", chainSlug: "wendys", title: "$1 Frosty" }),
+      ],
+    },
+  ];
+
+  it("drops deals already reminded (by stable key) and keeps the rest", () => {
+    const sent = new Map([["u", new Set(["wendys:free fries"])]]);
+    const result = removeAlreadyReminded(grouped, sent);
+    expect(result[0].deals.map((d) => d.id)).toEqual(["2"]);
+  });
+
+  it("omits a user once all their deals have been reminded", () => {
+    const sent = new Map([["u", new Set(["wendys:free fries", "wendys:$1 frosty"])]]);
+    expect(removeAlreadyReminded(grouped, sent)).toEqual([]);
+  });
+
+  it("keeps everything when the user has no prior reminders", () => {
+    const result = removeAlreadyReminded(grouped, new Map());
+    expect(result[0].deals.map((d) => d.id)).toEqual(["1", "2"]);
+  });
+
+  it("matches a re-created deal row (new id, same offer) as already reminded", () => {
+    const recreated: UserReminder[] = [
+      { user, deals: [deal({ id: "new-row-99", chainSlug: "wendys", title: "Free Fries" })] },
+    ];
+    const sent = new Map([["u", new Set(["wendys:free fries"])]]);
+    expect(removeAlreadyReminded(recreated, sent)).toEqual([]);
   });
 });
 

@@ -2,10 +2,15 @@ import { CHAINS } from "@/lib/constants";
 import { dealHref } from "@/lib/utils";
 import type { ChainId } from "@/types/chain";
 
-// How close to expiry a deal must be to trigger a reminder. With a daily cron a
-// 24h window means each deal is reminded ~once — on the run within a day of its
-// expiry — without needing to persist a "last reminded" timestamp.
-export const REMINDER_WINDOW_HOURS = 24;
+// How close to expiry a deal must be to trigger a reminder. Idempotency
+// (see reminderKey / removeAlreadyReminded + the DealReminder table) means a
+// deal is emailed at most once per window, so we can give a few days' notice
+// without the daily cron re-sending the same deal each day.
+export const REMINDER_WINDOW_HOURS = 72;
+
+// How long a recorded reminder suppresses re-sending. After this, a deal with
+// the same stable key (e.g. a recurring weekly promo) may remind again.
+export const REMINDER_DEDUPE_DAYS = 30;
 
 export interface ReminderUser {
   id: string;
@@ -65,6 +70,32 @@ export function groupExpiringDealsByUser(
       )
       .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime());
     if (relevant.length > 0) out.push({ user, deals: relevant });
+  }
+  return out;
+}
+
+/**
+ * Stable per-user identity for a deal, used for reminder idempotency. Keyed on
+ * chain + normalized title rather than the (churning) deal row id, so the same
+ * offer isn't re-emailed when its row is re-created by a scrape or extension sync.
+ */
+export function reminderKey(deal: ReminderDeal): string {
+  return `${deal.chainSlug}:${deal.title.trim().toLowerCase()}`;
+}
+
+/**
+ * Drop deals a user has already been reminded about, given the set of stable
+ * keys already sent per user. Users left with no fresh deals are omitted.
+ */
+export function removeAlreadyReminded(
+  reminders: UserReminder[],
+  sentByUser: Map<string, Set<string>>,
+): UserReminder[] {
+  const out: UserReminder[] = [];
+  for (const r of reminders) {
+    const sent = sentByUser.get(r.user.id);
+    const fresh = sent ? r.deals.filter((d) => !sent.has(reminderKey(d))) : r.deals;
+    if (fresh.length > 0) out.push({ user: r.user, deals: fresh });
   }
   return out;
 }

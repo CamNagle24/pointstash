@@ -4,6 +4,7 @@ import {
   expiresInLabel,
   type ReminderDeal,
 } from "@/lib/deal-reminders";
+import { signUnsubscribeToken, unsubscribeSecret } from "@/lib/unsubscribe-token";
 
 // Mirrors the Resend setup in reset-tokens.ts: send when RESEND_API_KEY is
 // configured, otherwise (in dev) log a summary so the flow can be exercised
@@ -21,6 +22,15 @@ function appBaseUrl(): string {
     process.env.AUTH_URL ??
     "http://localhost:3000"
   );
+}
+
+// Absolute one-click unsubscribe URL for `userId`, or "" when no signing secret
+// is configured (the email then falls back to the Settings-only footer copy).
+function buildUnsubscribeUrl(userId: string): string {
+  const secret = unsubscribeSecret();
+  if (!secret) return "";
+  const token = signUnsubscribeToken(userId, secret);
+  return `${appBaseUrl()}/api/unsubscribe?token=${encodeURIComponent(token)}`;
 }
 
 function escapeHtml(s: string): string {
@@ -41,16 +51,19 @@ export type ReminderSendResult = "sent" | "logged";
 export async function sendExpiringDealsEmail({
   to,
   name,
+  userId,
   deals,
   now,
 }: {
   to: string;
   name: string | null;
+  userId: string;
   deals: ReminderDeal[];
   now: Date;
 }): Promise<ReminderSendResult> {
   const resend = getResend();
   const dealsUrl = `${appBaseUrl()}/dashboard/deals`;
+  const unsubscribeUrl = buildUnsubscribeUrl(userId);
   const count = deals.length;
   const subject =
     count === 1
@@ -75,8 +88,18 @@ export async function sendExpiringDealsEmail({
     from,
     to,
     subject,
-    html: buildHtml({ greeting, deals, now, dealsUrl }),
-    text: buildText({ greeting, deals, now, dealsUrl }),
+    html: buildHtml({ greeting, deals, now, dealsUrl, unsubscribeUrl }),
+    text: buildText({ greeting, deals, now, dealsUrl, unsubscribeUrl }),
+    // One-click unsubscribe (RFC 8058) so inbox providers can honor it and the
+    // sender reputation stays healthy. Only set when we could sign a token.
+    ...(unsubscribeUrl
+      ? {
+          headers: {
+            "List-Unsubscribe": `<${unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }
+      : {}),
   });
 
   if (error) throw new Error(error.message ?? "Email send failed");
@@ -88,11 +111,13 @@ function buildHtml({
   deals,
   now,
   dealsUrl,
+  unsubscribeUrl,
 }: {
   greeting: string;
   deals: ReminderDeal[];
   now: Date;
   dealsUrl: string;
+  unsubscribeUrl: string;
 }): string {
   const rows = deals
     .map((d) => {
@@ -131,7 +156,11 @@ function buildHtml({
                   <a href="${escapeHtml(dealsUrl)}" style="display:inline-block;background:#f59e0b;color:#0a0a0b;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See all your deals</a>
                 </p>
                 <p style="font-size:13px;line-height:1.5;color:#737373;margin:24px 0 0;border-top:1px solid #262626;padding-top:16px;">
-                  You're getting this because expiring-deal alerts are on. Turn them off any time in Settings → Notifications.
+                  You're getting this because expiring-deal alerts are on.${
+                    unsubscribeUrl
+                      ? ` <a href="${escapeHtml(unsubscribeUrl)}" style="color:#a3a3a3;text-decoration:underline;">Unsubscribe</a> or manage alerts in Settings → Notifications.`
+                      : " Turn them off any time in Settings → Notifications."
+                  }
                 </p>
               </td>
             </tr>
@@ -148,11 +177,13 @@ function buildText({
   deals,
   now,
   dealsUrl,
+  unsubscribeUrl,
 }: {
   greeting: string;
   deals: ReminderDeal[];
   now: Date;
   dealsUrl: string;
+  unsubscribeUrl: string;
 }): string {
   return [
     "PointStash — deals expiring soon",
@@ -169,6 +200,8 @@ function buildText({
     "",
     `See all your deals: ${dealsUrl}`,
     "",
-    "Turn off expiring-deal alerts any time in Settings → Notifications.",
+    unsubscribeUrl
+      ? `Unsubscribe from these emails: ${unsubscribeUrl}`
+      : "Turn off expiring-deal alerts any time in Settings → Notifications.",
   ].join("\n");
 }

@@ -105,6 +105,7 @@ export async function GET(req: NextRequest) {
         const result = await sendExpiringDealsEmail({
           to: r.user.email,
           name: r.user.name,
+          userId: r.user.id,
           deals: r.deals,
           now,
         });

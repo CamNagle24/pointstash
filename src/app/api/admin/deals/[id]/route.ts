@@ -31,6 +31,9 @@ const patchSchema = z.object({
   startsAt: z.string().datetime().nullable().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
   isActive: z.boolean().optional(),
+  // Lets an admin promote an auto-scraped (EXTENSION/LLM) deal to verified, or
+  // demote one — the review-queue action. `source` stays untouched.
+  isVerified: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -73,6 +76,7 @@ export async function PATCH(
           expiresAt: p.expiresAt ? new Date(p.expiresAt) : null,
         }),
         ...(p.isActive !== undefined && { isActive: p.isActive }),
+        ...(p.isVerified !== undefined && { isVerified: p.isVerified }),
       },
       include: { chain: chainSelect() },
     });

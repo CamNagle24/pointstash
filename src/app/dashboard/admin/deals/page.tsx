@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Trash2, Clock, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, Loader2, AlertCircle, ShieldCheck, ShieldX } from "lucide-react";
 import { CHAINS, CHAIN_IDS } from "@/lib/constants";
 import type { ChainId } from "@/types/chain";
 import type { Deal } from "@/types/deal";
@@ -116,6 +116,14 @@ export default function AdminDealsPage() {
     await fetch(`/api/admin/deals/${deal.id}?expire=1`, { method: "DELETE" });
     mutate();
   };
+  const onToggleVerify = async (deal: Deal) => {
+    await fetch(`/api/admin/deals/${deal.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isVerified: !deal.isVerified }),
+    });
+    mutate();
+  };
   const onDelete = async (deal: Deal) => {
     if (!confirm(`Delete "${deal.title}"? This cannot be undone.`)) return;
     await fetch(`/api/admin/deals/${deal.id}`, { method: "DELETE" });
@@ -185,6 +193,12 @@ export default function AdminDealsPage() {
                     <Badge variant={deal.source === "MANUAL" ? "accent" : "info"}>
                       {deal.source}
                     </Badge>
+                    {!deal.isVerified && (
+                      <Badge variant="warning" className="gap-1">
+                        <ShieldX className="h-3 w-3" />
+                        Unverified
+                      </Badge>
+                    )}
                     {!deal.isActive ? (
                       <Badge variant="muted">Inactive</Badge>
                     ) : expired ? (
@@ -194,6 +208,16 @@ export default function AdminDealsPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={deal.isVerified ? "Mark unverified" : "Mark verified"}
+                      title={deal.isVerified ? "Mark unverified" : "Mark verified"}
+                      className={deal.isVerified ? "text-[#4ade80] hover:text-green-300" : "text-[#facc15] hover:text-yellow-300"}
+                      onClick={() => onToggleVerify(deal)}
+                    >
+                      {deal.isVerified ? <ShieldCheck className="h-4 w-4" /> : <ShieldX className="h-4 w-4" />}
+                    </Button>
                     <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => openEdit(deal)}>
                       <Pencil className="h-4 w-4" />
                     </Button>

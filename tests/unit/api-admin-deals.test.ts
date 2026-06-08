@@ -162,6 +162,18 @@ describe("PATCH /api/admin/deals/[id]", () => {
     const data = dealUpdateMock.mock.calls[0][0].data;
     expect(data).toEqual({ redeemUrl: "https://x.com/a", description: null });
   });
+
+  it("verifies an auto-scraped deal via isVerified (the review-queue action)", async () => {
+    asAdmin();
+    dealFindUniqueMock.mockResolvedValue({ id: "d1", isVerified: false });
+    dealUpdateMock.mockResolvedValue({ id: "d1", isVerified: true });
+    const res = await PATCH(
+      jsonReq("http://localhost/api/admin/deals/d1", "PATCH", { isVerified: true }),
+      params,
+    );
+    expect(res.status).toBe(200);
+    expect(dealUpdateMock.mock.calls[0][0].data).toEqual({ isVerified: true });
+  });
 });
 
 describe("DELETE /api/admin/deals/[id]", () => {

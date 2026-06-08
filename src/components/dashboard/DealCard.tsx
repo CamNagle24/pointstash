@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, Clock } from "lucide-react";
+import { ExternalLink, Clock, ShieldAlert } from "lucide-react";
 import type { ChainId } from "@/types/chain";
 import { CHAINS } from "@/lib/constants";
 import { ChainLogo } from "@/components/ui/ChainLogo";
@@ -28,6 +28,8 @@ type DealCardProps = {
   anchorText?: string | null;
   /** Set when this is the user's own extension-scraped offer. */
   userId?: string | null;
+  /** False for auto-scraped deals an admin hasn't reviewed yet. */
+  isVerified?: boolean;
   index?: number;
 };
 
@@ -42,6 +44,7 @@ export function DealCard({
   redeemUrl,
   anchorText,
   userId,
+  isVerified,
   index = 0,
 }: DealCardProps) {
   const chain = CHAINS[chainSlug];
@@ -49,6 +52,9 @@ export function DealCard({
   const ttl = timeUntil(expiresAt);
   const expiringSoon = expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 2;
   const ctaLabel = redeemUrl ? "Redeem" : sourceUrl ? "View deal" : "Open in app";
+  // Flag only global (not the user's own) deals that an admin hasn't reviewed.
+  // "Yours" already conveys provenance for a user's own synced offers.
+  const showUnverified = isVerified === false && !userId;
 
   return (
     <motion.div
@@ -70,6 +76,16 @@ export function DealCard({
             {userId && (
               <Badge variant="success" title="Synced from your account — redeemable now">
                 Yours
+              </Badge>
+            )}
+            {showUnverified && (
+              <Badge
+                variant="muted"
+                className="gap-1"
+                title="Auto-detected from a public source — not yet verified by PointStash"
+              >
+                <ShieldAlert className="h-3 w-3" />
+                Unverified
               </Badge>
             )}
             <Badge variant={discountTypeBadgeVariant[discountType] ?? "default"}>

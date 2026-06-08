@@ -256,9 +256,14 @@ function MonthView({
                     <button
                       key={s.deal.id}
                       type="button"
-                      title={`${chain.name}: ${s.deal.title}`}
+                      title={`${chain.name}: ${s.deal.title}${s.deal.userId ? " (yours)" : ""}`}
                       onClick={() => openDeal(s.deal, s.slug)}
-                      className="flex items-center gap-1 overflow-hidden rounded py-0.5 pr-1 text-left text-[11px] font-medium leading-tight text-[#0a0a0b]"
+                      className={cn(
+                        "flex items-center gap-1 overflow-hidden rounded py-0.5 pr-1 text-left text-[11px] font-medium leading-tight text-[#0a0a0b]",
+                        // Mark the user's own synced offers so they stand out
+                        // from global deals even at chip size.
+                        s.deal.userId && "ring-1 ring-inset ring-black/40",
+                      )}
                       style={{ background: chain.color }}
                     >
                       <ChainLogo slug={s.slug} size="xs" className="shrink-0" />
@@ -352,6 +357,11 @@ function WeekView({ anchor, today, spans }: { anchor: Date; today: Date; spans: 
                           </span>
                           <span className="text-[11px] text-[var(--text-muted)]">{chain.name}</span>
                         </span>
+                        {s.deal.userId && (
+                          <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#4ade80] ring-1 ring-inset ring-[rgba(34,197,94,0.4)]">
+                            Yours
+                          </span>
+                        )}
                         {isNew && (
                           <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]">
                             New

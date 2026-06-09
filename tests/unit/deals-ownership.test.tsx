@@ -27,6 +27,25 @@ describe("DealCard — Yours badge", () => {
   });
 });
 
+describe("DealCard — Unverified trust signal", () => {
+  it("flags a global, unreviewed (auto-scraped) deal", () => {
+    render(<DealCard {...baseCardProps} userId={null} isVerified={false} />);
+    expect(screen.getByText("Unverified")).toBeInTheDocument();
+  });
+
+  it("does not flag a verified deal", () => {
+    render(<DealCard {...baseCardProps} userId={null} isVerified={true} />);
+    expect(screen.queryByText("Unverified")).not.toBeInTheDocument();
+  });
+
+  it("does not flag the user's own synced deal even though it's unverified", () => {
+    // "Yours" conveys provenance; an alarming "Unverified" would be confusing.
+    render(<DealCard {...baseCardProps} userId="user_1" isVerified={false} />);
+    expect(screen.getByText("Yours")).toBeInTheDocument();
+    expect(screen.queryByText("Unverified")).not.toBeInTheDocument();
+  });
+});
+
 function calendarDeal(over: Partial<Deal>): Deal {
   const today = new Date().toISOString();
   return {

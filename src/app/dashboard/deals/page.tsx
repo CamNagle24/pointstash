@@ -260,6 +260,7 @@ export default function DealsPage() {
               redeemUrl={deal.redeemUrl}
               anchorText={deal.anchorText}
               userId={deal.userId}
+              isVerified={deal.isVerified}
               index={i}
             />
           ))}

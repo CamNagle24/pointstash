@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, CalendarDays } from "lucide-react";
+import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, CalendarDays, ArrowUpDown } from "lucide-react";
 import { CHAINS, CHAIN_IDS } from "@/lib/constants";
 import { useDeals } from "@/hooks/useDeals";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -18,12 +18,21 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
 } from "@/components/ui/DropdownMenu";
+import { Check } from "lucide-react";
 import { dealTypeLabel } from "@/lib/formatters";
 import type { ChainId } from "@/types/chain";
 import { cn } from "@/lib/utils";
 
 const dealTypes = ["APP_EXCLUSIVE", "IN_STORE", "ONLINE", "REWARD_MEMBER"];
+
+type SortMode = "expiring" | "newest" | "value";
+const SORT_OPTIONS: { value: SortMode; label: string }[] = [
+  { value: "expiring", label: "Ending soon" },
+  { value: "newest", label: "Newest" },
+  { value: "value", label: "Points: low to high" },
+];
 
 export default function DealsPage() {
   const { deals, error, isLoading, mutate } = useDeals();
@@ -62,6 +71,7 @@ export default function DealsPage() {
   const [endingSoon, setEndingSoon] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"list" | "calendar">("list");
+  const [sortMode, setSortMode] = React.useState<SortMode>("expiring");
 
   const filtered = React.useMemo(() => {
     const soonCutoff = Date.now() + 1000 * 60 * 60 * 24 * 7;
@@ -78,6 +88,18 @@ export default function DealsPage() {
       return true;
     });
   }, [deals, chainFilter, typeFilter, endingSoon, search]);
+
+  // Sort client-side over the already-fetched feed so switching order never
+  // refetches. "value" puts the cheapest redeemable deals first; deals with no
+  // points cost (and deals with no expiry, under "expiring") sort to the end.
+  const sorted = React.useMemo(() => {
+    const time = (v: string | null) => (v ? new Date(v).getTime() : null);
+    return [...filtered].sort((a, b) => {
+      if (sortMode === "newest") return (time(b.createdAt) ?? 0) - (time(a.createdAt) ?? 0);
+      if (sortMode === "value") return (a.pointsCost ?? Infinity) - (b.pointsCost ?? Infinity);
+      return (time(a.expiresAt) ?? Infinity) - (time(b.expiresAt) ?? Infinity);
+    });
+  }, [filtered, sortMode]);
 
   const toggleChain = (id: ChainId) => {
     setChainFilter((prev) => {
@@ -161,6 +183,32 @@ export default function DealsPage() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          {viewMode === "list" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="md" aria-label="Sort deals" className="gap-2 whitespace-nowrap">
+                  <ArrowUpDown className="h-4 w-4" />
+                  {SORT_OPTIONS.find((o) => o.value === sortMode)?.label}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                {SORT_OPTIONS.map((o) => (
+                  <DropdownMenuItem
+                    key={o.value}
+                    onSelect={() => setSortMode(o.value)}
+                    className={sortMode === o.value ? "text-[var(--text-primary)]" : ""}
+                  >
+                    <Check
+                      className={`h-3.5 w-3.5 ${sortMode === o.value ? "text-[var(--accent)]" : "opacity-0"}`}
+                    />
+                    {o.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <div className="flex rounded-xl border border-[var(--border)] p-0.5">
             {([
               ["list", LayoutGrid, "List"],
@@ -247,7 +295,7 @@ export default function DealsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((deal, i) => (
+          {sorted.map((deal, i) => (
             <DealCard
               key={deal.id}
               chainSlug={(deal.chain?.slug ?? "mcdonalds") as ChainId}

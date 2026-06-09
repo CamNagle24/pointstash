@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, Clock, ShieldAlert } from "lucide-react";
+import { ExternalLink, Clock, ShieldAlert, Coins, Check } from "lucide-react";
 import type { ChainId } from "@/types/chain";
 import { CHAINS } from "@/lib/constants";
 import { ChainLogo } from "@/components/ui/ChainLogo";
@@ -30,6 +30,10 @@ type DealCardProps = {
   userId?: string | null;
   /** False for auto-scraped deals an admin hasn't reviewed yet. */
   isVerified?: boolean;
+  /** Points needed to redeem, when this is a points-cost reward. */
+  pointsCost?: number | null;
+  /** The signed-in user's balance for this chain, when they track it. */
+  pointsBalance?: number | null;
   index?: number;
 };
 
@@ -45,6 +49,8 @@ export function DealCard({
   anchorText,
   userId,
   isVerified,
+  pointsCost,
+  pointsBalance,
   index = 0,
 }: DealCardProps) {
   const chain = CHAINS[chainSlug];
@@ -55,6 +61,9 @@ export function DealCard({
   // Flag only global (not the user's own) deals that an admin hasn't reviewed.
   // "Yours" already conveys provenance for a user's own synced offers.
   const showUnverified = isVerified === false && !userId;
+  // Affordability only when the user actually tracks this chain (balance known).
+  const showPoints = pointsCost != null;
+  const canAfford = pointsBalance != null && pointsBalance >= (pointsCost ?? 0);
 
   return (
     <motion.div
@@ -100,6 +109,26 @@ export function DealCard({
             {description}
           </p>
         </div>
+
+        {showPoints && (
+          <div className="mt-4 flex items-center gap-1.5 text-xs">
+            <Coins className="h-3.5 w-3.5 text-[var(--accent)]" />
+            <span className="font-medium text-[var(--text-secondary)]">
+              {pointsCost!.toLocaleString()} pts
+            </span>
+            {pointsBalance != null &&
+              (canAfford ? (
+                <span className="flex items-center gap-1 text-[#4ade80]">
+                  · You have {pointsBalance.toLocaleString()}
+                  <Check className="h-3 w-3" />
+                </span>
+              ) : (
+                <span className="text-[var(--text-muted)]">
+                  · {(pointsCost! - pointsBalance).toLocaleString()} short
+                </span>
+              ))}
+          </div>
+        )}
 
         <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4">
           <div

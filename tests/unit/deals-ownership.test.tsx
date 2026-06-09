@@ -46,6 +46,35 @@ describe("DealCard — Unverified trust signal", () => {
   });
 });
 
+describe("DealCard — points cost & affordability", () => {
+  it("shows the points cost when the deal has one", () => {
+    render(<DealCard {...baseCardProps} pointsCost={500} />);
+    expect(screen.getByText("500 pts")).toBeInTheDocument();
+  });
+
+  it("omits the points row when there is no points cost", () => {
+    render(<DealCard {...baseCardProps} pointsCost={null} pointsBalance={900} />);
+    expect(screen.queryByText(/pts/)).not.toBeInTheDocument();
+  });
+
+  it("confirms affordability when the tracked balance covers the cost", () => {
+    render(<DealCard {...baseCardProps} pointsCost={500} pointsBalance={720} />);
+    expect(screen.getByText(/You have 720/)).toBeInTheDocument();
+  });
+
+  it("shows how many points short when the balance falls short", () => {
+    render(<DealCard {...baseCardProps} pointsCost={500} pointsBalance={300} />);
+    expect(screen.getByText(/200 short/)).toBeInTheDocument();
+  });
+
+  it("shows only the cost (no affordability) when the chain isn't tracked", () => {
+    render(<DealCard {...baseCardProps} pointsCost={500} pointsBalance={null} />);
+    expect(screen.getByText("500 pts")).toBeInTheDocument();
+    expect(screen.queryByText(/You have/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/short/)).not.toBeInTheDocument();
+  });
+});
+
 function calendarDeal(over: Partial<Deal>): Deal {
   const today = new Date().toISOString();
   return {

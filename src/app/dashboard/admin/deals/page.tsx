@@ -98,8 +98,13 @@ export default function AdminDealsPage() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Deal | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "review" | "verified">("all");
 
   const deals = data?.deals ?? [];
+  const reviewCount = deals.filter((d) => !d.isVerified).length;
+  const visibleDeals = deals.filter((d) =>
+    statusFilter === "review" ? !d.isVerified : statusFilter === "verified" ? d.isVerified : true,
+  );
 
   const openCreate = () => {
     setEditing(null);
@@ -141,7 +146,15 @@ export default function AdminDealsPage() {
             Manage deals
           </h1>
           <p className="text-sm text-[var(--text-secondary)]">
-            {isLoading ? "Loading…" : `${deals.length} deal${deals.length === 1 ? "" : "s"} total`}
+            {isLoading
+              ? "Loading…"
+              : `${deals.length} deal${deals.length === 1 ? "" : "s"} total`}
+            {!isLoading && reviewCount > 0 && (
+              <span className="text-[#facc15]">
+                {" · "}
+                {reviewCount} need{reviewCount === 1 ? "s" : ""} review
+              </span>
+            )}
           </p>
         </div>
         <Button onClick={openCreate} className="gap-2">
@@ -170,9 +183,43 @@ export default function AdminDealsPage() {
           </p>
         </div>
       ) : (
-        <Card className="overflow-hidden p-0">
-          <div className="divide-y divide-[var(--border)]">
-            {deals.map((deal) => {
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              ["all", "All", deals.length],
+              ["review", "Needs review", reviewCount],
+              ["verified", "Verified", deals.length - reviewCount],
+            ] as const).map(([value, label, count]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setStatusFilter(value)}
+                className={
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors " +
+                  (statusFilter === value
+                    ? "border-[var(--accent)] bg-[rgba(245,158,11,0.12)] text-[var(--accent)]"
+                    : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]")
+                }
+              >
+                {label}
+                <span className="ml-1.5 text-[var(--text-muted)]">{count}</span>
+              </button>
+            ))}
+          </div>
+
+          {visibleDeals.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[var(--border)] py-16 text-center">
+              <p className="font-display text-base font-semibold">Nothing here</p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                {statusFilter === "review"
+                  ? "No deals are waiting on review — you're all caught up."
+                  : "No deals match this filter."}
+              </p>
+            </div>
+          ) : (
+            <Card className="overflow-hidden p-0">
+              <div className="divide-y divide-[var(--border)]">
+                {visibleDeals.map((deal) => {
               const slug = (deal.chain?.slug ?? "mcdonalds") as ChainId;
               const expired =
                 deal.expiresAt != null && new Date(deal.expiresAt).getTime() < Date.now();
@@ -236,9 +283,11 @@ export default function AdminDealsPage() {
                   </div>
                 </div>
               );
-            })}
-          </div>
-        </Card>
+                })}
+              </div>
+            </Card>
+          )}
+        </div>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

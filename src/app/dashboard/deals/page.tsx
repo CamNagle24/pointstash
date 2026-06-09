@@ -73,6 +73,14 @@ export default function DealsPage() {
   const [viewMode, setViewMode] = React.useState<"list" | "calendar">("list");
   const [sortMode, setSortMode] = React.useState<SortMode>("expiring");
 
+  // Per-chain balances for the signed-in user, so a points-cost deal can show
+  // whether they can already afford it. Empty when no accounts are linked.
+  const pointsByChain = React.useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const a of accounts) m[a.chain.slug] = a.currentPoints;
+    return m;
+  }, [accounts]);
+
   const filtered = React.useMemo(() => {
     const soonCutoff = Date.now() + 1000 * 60 * 60 * 24 * 7;
     return deals.filter((d) => {
@@ -309,6 +317,8 @@ export default function DealsPage() {
               anchorText={deal.anchorText}
               userId={deal.userId}
               isVerified={deal.isVerified}
+              pointsCost={deal.pointsCost}
+              pointsBalance={pointsByChain[deal.chain?.slug ?? ""] ?? null}
               index={i}
             />
           ))}

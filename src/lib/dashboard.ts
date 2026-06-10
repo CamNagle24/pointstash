@@ -1,5 +1,6 @@
 import type { ChainAccount } from "@/types/account";
 import type { RedemptionOption } from "@/types/redemption";
+import type { Deal } from "@/types/deal";
 
 /**
  * For a given chain, return the redemption with the highest cents-per-point.
@@ -37,5 +38,21 @@ export function totalEstimatedDollars(
     const best = bestRedemptionFor(a.chainId, redemptions);
     if (!best) return sum;
     return sum + (a.currentPoints * best.centsPerPoint) / 100;
+  }, 0);
+}
+
+/**
+ * Count deals the user can redeem right now: those with a points cost on a
+ * chain they track, where the tracked balance covers the cost. Mirrors the
+ * affordability check the deals feed applies per card.
+ */
+export function affordableDealCount(deals: Deal[], accounts: ChainAccount[]): number {
+  const balanceBySlug: Record<string, number> = {};
+  for (const a of accounts) balanceBySlug[a.chain.slug] = a.currentPoints;
+  return deals.reduce((n, d) => {
+    if (d.pointsCost == null) return n;
+    const balance = balanceBySlug[d.chain?.slug ?? ""];
+    if (balance == null || balance < d.pointsCost) return n;
+    return n + 1;
   }, 0);
 }

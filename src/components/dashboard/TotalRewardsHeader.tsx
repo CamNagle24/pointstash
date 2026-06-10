@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, Wallet, Tags } from "lucide-react";
+import { TrendingUp, Wallet, Tags, Coins } from "lucide-react";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 
 type Stat = {
@@ -18,13 +18,23 @@ type Props = {
   totalDollars: number;
   accountCount: number;
   activeDeals: number;
+  /** Deals the user can redeem now; omitted when no accounts are linked. */
+  affordableDeals?: number;
 };
 
-export function TotalRewardsHeader({ totalDollars, accountCount, activeDeals }: Props) {
+export function TotalRewardsHeader({
+  totalDollars,
+  accountCount,
+  activeDeals,
+  affordableDeals,
+}: Props) {
   const stats: Stat[] = [
     { label: "Connected accounts", value: accountCount, icon: Wallet },
     { label: "Active deals", value: activeDeals, icon: Tags },
   ];
+  if (affordableDeals != null) {
+    stats.push({ label: "Affordable now", value: affordableDeals, icon: Coins });
+  }
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--bg-secondary)] p-8 md:p-10">

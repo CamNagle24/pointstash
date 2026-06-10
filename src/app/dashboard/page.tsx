@@ -10,7 +10,12 @@ import { TotalRewardsHeader } from "@/components/dashboard/TotalRewardsHeader";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useRedemptions } from "@/hooks/useRedemptions";
 import { useDeals } from "@/hooks/useDeals";
-import { bestRedemptionFor, bestRedemptionLabel, totalEstimatedDollars } from "@/lib/dashboard";
+import {
+  affordableDealCount,
+  bestRedemptionFor,
+  bestRedemptionLabel,
+  totalEstimatedDollars,
+} from "@/lib/dashboard";
 import { silentSync } from "@/lib/extension-bridge";
 import { CHAINS } from "@/lib/constants";
 import type { ChainAccount } from "@/types/account";
@@ -42,6 +47,10 @@ export default function DashboardPage() {
     () => totalEstimatedDollars(accounts, redemptions),
     [accounts, redemptions],
   );
+  const affordable = React.useMemo(
+    () => affordableDealCount(deals, accounts),
+    [deals, accounts],
+  );
 
   if (accountsLoading) return <PageState message="Loading your stash…" loading />;
   if (accountsError) return <PageState message={accountsError.message} error />;
@@ -61,6 +70,7 @@ export default function DashboardPage() {
         totalDollars={total}
         accountCount={accounts.length}
         activeDeals={deals.length}
+        affordableDeals={accounts.length > 0 ? affordable : undefined}
       />
 
       <section>

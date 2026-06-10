@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, CalendarDays, ArrowUpDown } from "lucide-react";
+import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, CalendarDays, ArrowUpDown, Wallet } from "lucide-react";
 import { CHAINS, CHAIN_IDS } from "@/lib/constants";
 import { useDeals } from "@/hooks/useDeals";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -69,6 +69,7 @@ export default function DealsPage() {
   }, [accounts]);
   const [typeFilter, setTypeFilter] = React.useState<Set<string>>(new Set());
   const [endingSoon, setEndingSoon] = React.useState(false);
+  const [affordableOnly, setAffordableOnly] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"list" | "calendar">("list");
   const [sortMode, setSortMode] = React.useState<SortMode>("expiring");
@@ -81,6 +82,15 @@ export default function DealsPage() {
     return m;
   }, [accounts]);
 
+  // The "Affordable" toggle is only meaningful once we know a balance to compare
+  // against, so it's hidden unless the user tracks a chain and some deal has a
+  // points cost. Keeping the toggle off the toolbar avoids a control that would
+  // filter the feed down to nothing for a user with no linked accounts.
+  const canShowAffordable = React.useMemo(
+    () => accounts.length > 0 && deals.some((d) => d.pointsCost != null),
+    [accounts, deals],
+  );
+
   const filtered = React.useMemo(() => {
     const soonCutoff = Date.now() + 1000 * 60 * 60 * 24 * 7;
     return deals.filter((d) => {
@@ -88,6 +98,11 @@ export default function DealsPage() {
       if (chainFilter.size > 0 && !chainFilter.has(slug)) return false;
       if (typeFilter.size > 0 && !typeFilter.has(d.dealType)) return false;
       if (endingSoon && !(d.expiresAt && new Date(d.expiresAt).getTime() <= soonCutoff)) return false;
+      if (affordableOnly) {
+        if (d.pointsCost == null) return false;
+        const balance = pointsByChain[slug];
+        if (balance == null || balance < d.pointsCost) return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         const haystack = `${d.title} ${d.description ?? ""}`.toLowerCase();
@@ -95,7 +110,7 @@ export default function DealsPage() {
       }
       return true;
     });
-  }, [deals, chainFilter, typeFilter, endingSoon, search]);
+  }, [deals, chainFilter, typeFilter, endingSoon, affordableOnly, pointsByChain, search]);
 
   // Sort client-side over the already-fetched feed so switching order never
   // refetches. "value" puts the cheapest redeemable deals first; deals with no
@@ -165,6 +180,18 @@ export default function DealsPage() {
             <Clock className="h-4 w-4" />
             Ending soon
           </Button>
+          {canShowAffordable && (
+            <Button
+              type="button"
+              variant={affordableOnly ? "primary" : "outline"}
+              size="md"
+              className="gap-2 whitespace-nowrap"
+              onClick={() => setAffordableOnly((v) => !v)}
+            >
+              <Wallet className="h-4 w-4" />
+              Affordable
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="md" className="gap-2">

@@ -112,26 +112,45 @@ function DealsPageContent() {
     [accounts, deals],
   );
 
-  const filtered = React.useMemo(() => {
-    const soonCutoff = Date.now() + 1000 * 60 * 60 * 24 * 7;
-    return deals.filter((d) => {
+  // Every filter except affordability. Kept separate so the empty state can tell
+  // whether the Affordable toggle alone emptied the feed (deals match the base
+  // filters but none are affordable) versus a generic no-match.
+  const matchesBaseFilters = React.useCallback(
+    (d: (typeof deals)[number]) => {
+      const soonCutoff = Date.now() + 1000 * 60 * 60 * 24 * 7;
       const slug = (d.chain?.slug ?? "") as ChainId;
       if (chainFilter.size > 0 && !chainFilter.has(slug)) return false;
       if (typeFilter.size > 0 && !typeFilter.has(d.dealType)) return false;
       if (endingSoon && !(d.expiresAt && new Date(d.expiresAt).getTime() <= soonCutoff)) return false;
-      if (affordableOnly) {
-        if (d.pointsCost == null) return false;
-        const balance = pointsByChain[slug];
-        if (balance == null || balance < d.pointsCost) return false;
-      }
       if (search) {
         const q = search.toLowerCase();
         const haystack = `${d.title} ${d.description ?? ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
-    });
-  }, [deals, chainFilter, typeFilter, endingSoon, affordableOnly, pointsByChain, search]);
+    },
+    [chainFilter, typeFilter, endingSoon, search],
+  );
+
+  const isAffordable = React.useCallback(
+    (d: (typeof deals)[number]) => {
+      if (d.pointsCost == null) return false;
+      const balance = pointsByChain[(d.chain?.slug ?? "") as ChainId];
+      return balance != null && balance >= d.pointsCost;
+    },
+    [pointsByChain],
+  );
+
+  const filtered = React.useMemo(() => {
+    return deals.filter((d) => matchesBaseFilters(d) && (!affordableOnly || isAffordable(d)));
+  }, [deals, matchesBaseFilters, affordableOnly, isAffordable]);
+
+  // True when the only thing standing between the user and some deals is
+  // affordability — drives a more helpful empty-state message than "no match".
+  const emptiedByAffordable = React.useMemo(
+    () => affordableOnly && filtered.length === 0 && deals.some(matchesBaseFilters),
+    [affordableOnly, filtered.length, deals, matchesBaseFilters],
+  );
 
   // Sort client-side over the already-fetched feed so switching order never
   // refetches. "value" puts the cheapest redeemable deals first; deals with no
@@ -342,11 +361,15 @@ function DealsPageContent() {
         <DealsCalendar deals={filtered} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-20 text-center">
-          <p className="font-display text-lg font-semibold">No deals match those filters</p>
+          <p className="font-display text-lg font-semibold">
+            {emptiedByAffordable ? "No deals you can afford yet" : "No deals match those filters"}
+          </p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            {deals.length === 0
-              ? "The scraper hasn't run yet — check back after 6 AM CT."
-              : "Try clearing chain filters or searching a different keyword."}
+            {emptiedByAffordable
+              ? "Link more accounts or earn more points to unlock these deals."
+              : deals.length === 0
+                ? "The scraper hasn't run yet — check back after 6 AM CT."
+                : "Try clearing chain filters or searching a different keyword."}
           </p>
         </div>
       ) : (

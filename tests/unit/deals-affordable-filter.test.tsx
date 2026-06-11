@@ -114,6 +114,20 @@ describe("DealsPage — Affordable filter", () => {
     expect(shown("Freebie")).toBe(false); // no points cost
   });
 
+  it("shows an affordability-specific empty state when nothing is affordable", () => {
+    // Only unaffordable deals on the user's tracked chain, filter pre-enabled.
+    useDealsMock.mockReturnValue({
+      deals: [PRICEY, FREEBIE],
+      error: undefined,
+      isLoading: false,
+      mutate: vi.fn(),
+    });
+    searchParamsRef.current = new URLSearchParams("affordable=1");
+    render(<DealsPage />);
+    expect(screen.getByText("No deals you can afford yet")).toBeInTheDocument();
+    expect(screen.queryByText("No deals match those filters")).not.toBeInTheDocument();
+  });
+
   it("excludes a points deal on an untracked chain (unknown balance)", async () => {
     useDealsMock.mockReturnValue({
       deals: [CHEAP, deal({ title: "Untracked", pointsCost: 50, chain: kfcChain })],

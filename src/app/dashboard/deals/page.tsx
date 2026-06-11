@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, CalendarDays, ArrowUpDown, Wallet } from "lucide-react";
 import { CHAINS, CHAIN_IDS } from "@/lib/constants";
@@ -35,8 +36,23 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 ];
 
 export default function DealsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" />
+        </div>
+      }
+    >
+      <DealsPageContent />
+    </React.Suspense>
+  );
+}
+
+function DealsPageContent() {
   const { deals, error, isLoading, mutate } = useDeals();
   const { accounts } = useAccounts();
+  const searchParams = useSearchParams();
 
   // On mount, ask the extension to harvest the user's redeemable offers from
   // any open chain tabs; refresh the feed if it synced anything. Quietly no-ops
@@ -69,7 +85,12 @@ export default function DealsPage() {
   }, [accounts]);
   const [typeFilter, setTypeFilter] = React.useState<Set<string>>(new Set());
   const [endingSoon, setEndingSoon] = React.useState(false);
-  const [affordableOnly, setAffordableOnly] = React.useState(false);
+  // Honor a ?affordable=1 deep link (e.g. from the dashboard "Affordable now"
+  // stat) by pre-enabling the toggle. Read once on mount so it never fights the
+  // user's later clicks.
+  const [affordableOnly, setAffordableOnly] = React.useState(
+    () => searchParams.get("affordable") === "1",
+  );
   const [search, setSearch] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"list" | "calendar">("list");
   const [sortMode, setSortMode] = React.useState<SortMode>("expiring");

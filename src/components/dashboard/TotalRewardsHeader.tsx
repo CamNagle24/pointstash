@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { TrendingUp, Wallet, Tags, Coins } from "lucide-react";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
@@ -12,6 +13,8 @@ type Stat = {
   suffix?: string;
   decimals?: number;
   icon: React.ComponentType<{ className?: string }>;
+  /** When set, the stat card becomes a link to this href. */
+  href?: string;
 };
 
 type Props = {
@@ -33,7 +36,12 @@ export function TotalRewardsHeader({
     { label: "Active deals", value: activeDeals, icon: Tags },
   ];
   if (affordableDeals != null) {
-    stats.push({ label: "Affordable now", value: affordableDeals, icon: Coins });
+    stats.push({
+      label: "Affordable now",
+      value: affordableDeals,
+      icon: Coins,
+      href: "/dashboard/deals?affordable=1",
+    });
   }
 
   return (
@@ -65,23 +73,40 @@ export function TotalRewardsHeader({
         </motion.div>
 
         <div className="grid grid-cols-2 gap-3">
-          {stats.map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 + i * 0.05 }}
-              className="rounded-2xl border border-[var(--border)] bg-[var(--bg-tertiary)]/40 p-4 min-w-[140px]"
-            >
-              <div className="flex items-center gap-2 text-[var(--text-muted)]">
-                <s.icon className="h-3.5 w-3.5" />
-                <p className="text-[10px] font-semibold uppercase tracking-wider">{s.label}</p>
-              </div>
-              <p className="mt-1 font-display font-mono-tabular text-3xl font-bold">
-                <AnimatedNumber value={s.value} />
-              </p>
-            </motion.div>
-          ))}
+          {stats.map((s, i) => {
+            const body = (
+              <>
+                <div className="flex items-center gap-2 text-[var(--text-muted)]">
+                  <s.icon className="h-3.5 w-3.5" />
+                  <p className="text-[10px] font-semibold uppercase tracking-wider">{s.label}</p>
+                </div>
+                <p className="mt-1 font-display font-mono-tabular text-3xl font-bold">
+                  <AnimatedNumber value={s.value} />
+                </p>
+              </>
+            );
+            const cardClass =
+              "block rounded-2xl border border-[var(--border)] bg-[var(--bg-tertiary)]/40 p-4 min-w-[140px]";
+            return (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 + i * 0.05 }}
+              >
+                {s.href ? (
+                  <Link
+                    href={s.href}
+                    className={`${cardClass} transition-colors hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)]/70`}
+                  >
+                    {body}
+                  </Link>
+                ) : (
+                  <div className={cardClass}>{body}</div>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </div>

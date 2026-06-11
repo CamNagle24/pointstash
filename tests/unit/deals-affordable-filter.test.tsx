@@ -5,13 +5,17 @@ import type { Deal } from "@/types/deal";
 
 // Same offline harness as the sort test: stub the data hooks and the on-mount
 // extension poke so the feed renders deterministically.
-const { useDealsMock, useAccountsMock } = vi.hoisted(() => ({
+const { useDealsMock, useAccountsMock, searchParamsRef } = vi.hoisted(() => ({
   useDealsMock: vi.fn(),
   useAccountsMock: vi.fn(),
+  searchParamsRef: { current: new URLSearchParams() },
 }));
 vi.mock("@/hooks/useDeals", () => ({ useDeals: useDealsMock }));
 vi.mock("@/hooks/useAccounts", () => ({ useAccounts: useAccountsMock }));
 vi.mock("@/lib/extension-bridge", () => ({ syncOffers: vi.fn().mockResolvedValue({ synced: [] }) }));
+// Override the global next/navigation stub so this file can drive the URL params
+// the page reads on mount (the ?affordable=1 deep link).
+vi.mock("next/navigation", () => ({ useSearchParams: () => searchParamsRef.current }));
 
 import DealsPage from "@/app/dashboard/deals/page";
 
@@ -67,6 +71,7 @@ beforeEach(() => {
     mutate: vi.fn(),
   });
   useAccountsMock.mockReset().mockReturnValue({ accounts: [wendysAccount] });
+  searchParamsRef.current = new URLSearchParams();
 });
 
 describe("DealsPage — Affordable filter", () => {
@@ -95,6 +100,15 @@ describe("DealsPage — Affordable filter", () => {
 
     await user.click(screen.getByRole("button", { name: "Affordable" }));
 
+    expect(shown("Cheap")).toBe(true); // 100 ≤ 500
+    expect(shown("Pricey")).toBe(false); // 900 > 500
+    expect(shown("Freebie")).toBe(false); // no points cost
+  });
+
+  it("pre-enables the filter from a ?affordable=1 deep link", () => {
+    searchParamsRef.current = new URLSearchParams("affordable=1");
+    render(<DealsPage />);
+    // Filtered on mount with no click: only the affordable deal survives.
     expect(shown("Cheap")).toBe(true); // 100 ≤ 500
     expect(shown("Pricey")).toBe(false); // 900 > 500
     expect(shown("Freebie")).toBe(false); // no points cost

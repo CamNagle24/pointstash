@@ -152,6 +152,9 @@ export function ScreenshotUploader({ chainSlug, onConfirm }: Props) {
               className="flex flex-col items-center gap-3"
             >
               {preview ? (
+                // Local blob: object URL of the user's screenshot — next/image
+                // can't optimize blob sources, so a plain img is correct here.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={preview}
                   alt="Uploading"
@@ -174,6 +177,9 @@ export function ScreenshotUploader({ chainSlug, onConfirm }: Props) {
               className="flex w-full flex-col items-center gap-4"
             >
               {preview ? (
+                // Local blob: object URL of the user's screenshot — next/image
+                // can't optimize blob sources, so a plain img is correct here.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={preview}
                   alt="Screenshot"

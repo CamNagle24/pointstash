@@ -67,6 +67,23 @@ describe("DealCard — points cost & affordability", () => {
     expect(screen.getByText(/200 short/)).toBeInTheDocument();
   });
 
+  it('nudges with an "Almost there" badge when within ~15% of the cost', () => {
+    // 450/500 = 90% of the cost (50 short) → within the 15% threshold.
+    render(<DealCard {...baseCardProps} pointsCost={500} pointsBalance={450} />);
+    expect(screen.getByText("Almost there")).toBeInTheDocument();
+    expect(screen.getByText(/50 short/)).toBeInTheDocument();
+  });
+
+  it('omits "Almost there" when the balance is far short', () => {
+    render(<DealCard {...baseCardProps} pointsCost={500} pointsBalance={300} />);
+    expect(screen.queryByText("Almost there")).not.toBeInTheDocument();
+  });
+
+  it('omits "Almost there" once the deal is already affordable', () => {
+    render(<DealCard {...baseCardProps} pointsCost={500} pointsBalance={500} />);
+    expect(screen.queryByText("Almost there")).not.toBeInTheDocument();
+  });
+
   it("shows only the cost (no affordability) when the chain isn't tracked", () => {
     render(<DealCard {...baseCardProps} pointsCost={500} pointsBalance={null} />);
     expect(screen.getByText("500 pts")).toBeInTheDocument();

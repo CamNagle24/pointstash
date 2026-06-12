@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { estimatedDealValueCents } from "@/lib/dashboard";
+import {
+  estimatedDealValueCents,
+  isAlmostAffordable,
+  ALMOST_AFFORDABLE_THRESHOLD,
+} from "@/lib/dashboard";
 import type { RedemptionOption } from "@/types/redemption";
 
 function redemption(over: Partial<RedemptionOption>): RedemptionOption {
@@ -36,5 +40,38 @@ describe("estimatedDealValueCents", () => {
 
   it("returns null when the chain has no redemptions to price against", () => {
     expect(estimatedDealValueCents("c2", 100, [redemption({ chainId: "c1" })])).toBeNull();
+  });
+});
+
+describe("isAlmostAffordable", () => {
+  it("is true just inside the threshold (≥85% of the cost)", () => {
+    // 85 / 100 = exactly at the 15% threshold boundary.
+    expect(isAlmostAffordable(100, 85)).toBe(true);
+    expect(isAlmostAffordable(100, 90)).toBe(true);
+  });
+
+  it("is false just outside the threshold", () => {
+    expect(isAlmostAffordable(100, 84)).toBe(false);
+  });
+
+  it("is false once the balance covers the cost (that's affordable, not almost)", () => {
+    expect(isAlmostAffordable(100, 100)).toBe(false);
+    expect(isAlmostAffordable(100, 120)).toBe(false);
+  });
+
+  it("respects a custom threshold", () => {
+    // Within 20% (80/100) but not the default 15%.
+    expect(isAlmostAffordable(100, 80, 0.2)).toBe(true);
+    expect(isAlmostAffordable(100, 80)).toBe(false);
+  });
+
+  it("returns false for unknown balance, missing cost, or non-positive cost", () => {
+    expect(isAlmostAffordable(100, null)).toBe(false);
+    expect(isAlmostAffordable(null, 90)).toBe(false);
+    expect(isAlmostAffordable(0, 0)).toBe(false);
+  });
+
+  it("exposes a 15% default threshold", () => {
+    expect(ALMOST_AFFORDABLE_THRESHOLD).toBe(0.15);
   });
 });

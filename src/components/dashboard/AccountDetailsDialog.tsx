@@ -14,7 +14,10 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ChainLogo } from "@/components/ui/ChainLogo";
+import { PointsChart } from "@/components/dashboard/PointsChart";
 import { useToast } from "@/components/ui/Toaster";
+import { usePointsHistory } from "@/hooks/usePointsHistory";
+import { buildBalanceSeries } from "@/lib/points-history";
 import { CHAINS } from "@/lib/constants";
 import { timeAgo } from "@/lib/utils";
 import {
@@ -74,6 +77,9 @@ export function AccountDetailsDialog({ account, open, onOpenChange, onChange }: 
   const [reconnecting, setReconnecting] = React.useState(false);
   const [disconnecting, setDisconnecting] = React.useState(false);
   const { toast } = useToast();
+  // Only fetch history while the dialog is open for this account.
+  const { history, isLoading: historyLoading } = usePointsHistory(open ? account?.id : undefined);
+  const series = React.useMemo(() => buildBalanceSeries(history), [history]);
 
   if (!account) return null;
 
@@ -215,6 +221,23 @@ export function AccountDetailsDialog({ account, open, onOpenChange, onChange }: 
                 {timeAgo(new Date(account.createdAt))}
               </span>
             </Row>
+          </div>
+
+          <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--bg-tertiary)]/40 p-4">
+            <p className="mb-2 text-xs uppercase tracking-wider text-[var(--text-muted)]">
+              Balance history
+            </p>
+            {historyLoading ? (
+              <div className="flex h-[140px] items-center justify-center">
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--text-muted)]" />
+              </div>
+            ) : series.length >= 2 ? (
+              <PointsChart data={series} pointsSymbol={chain.pointsSymbol} />
+            ) : (
+              <p className="py-6 text-center text-xs text-[var(--text-secondary)]">
+                Balances will chart here as they change.
+              </p>
+            )}
           </div>
 
           {appOnly ? (

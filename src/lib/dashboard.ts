@@ -58,6 +58,28 @@ export function totalEstimatedDollars(
 }
 
 /**
+ * Fraction of a deal's points cost a balance may fall short by and still count
+ * as "almost affordable". 0.15 = the user has at least 85% of what's needed.
+ */
+export const ALMOST_AFFORDABLE_THRESHOLD = 0.15;
+
+/**
+ * True when the user can't yet afford a points deal but is within
+ * `threshold` of it — close enough to nudge them toward earning the rest.
+ * Requires a known balance and a positive cost; an already-affordable deal
+ * returns false (it's not "almost").
+ */
+export function isAlmostAffordable(
+  pointsCost: number | null | undefined,
+  pointsBalance: number | null | undefined,
+  threshold = ALMOST_AFFORDABLE_THRESHOLD,
+): boolean {
+  if (pointsCost == null || pointsCost <= 0 || pointsBalance == null) return false;
+  if (pointsBalance >= pointsCost) return false;
+  return pointsBalance >= pointsCost * (1 - threshold);
+}
+
+/**
  * Count deals the user can redeem right now: those with a points cost on a
  * chain they track, where the tracked balance covers the cost. Mirrors the
  * affordability check the deals feed applies per card.

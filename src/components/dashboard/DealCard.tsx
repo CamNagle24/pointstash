@@ -15,6 +15,7 @@ import {
   discountTypeBadgeVariant,
 } from "@/lib/formatters";
 import { timeUntil, dealHref, formatCurrency } from "@/lib/utils";
+import { isAlmostAffordable } from "@/lib/dashboard";
 
 type DealCardProps = {
   chainSlug: ChainId;
@@ -67,6 +68,8 @@ export function DealCard({
   // Affordability only when the user actually tracks this chain (balance known).
   const showPoints = pointsCost != null;
   const canAfford = pointsBalance != null && pointsBalance >= (pointsCost ?? 0);
+  // Not yet affordable, but close enough to nudge the user toward the rest.
+  const almostAffordable = isAlmostAffordable(pointsCost, pointsBalance);
 
   return (
     <motion.div
@@ -88,6 +91,14 @@ export function DealCard({
             {userId && (
               <Badge variant="success" title="Synced from your account — redeemable now">
                 Yours
+              </Badge>
+            )}
+            {almostAffordable && (
+              <Badge
+                variant="accent"
+                title="You're close — earn a little more to redeem this"
+              >
+                Almost there
               </Badge>
             )}
             {showUnverified && (
@@ -134,7 +145,7 @@ export function DealCard({
                   <Check className="h-3 w-3" />
                 </span>
               ) : (
-                <span className="text-[var(--text-muted)]">
+                <span className={almostAffordable ? "font-medium text-[var(--accent)]" : "text-[var(--text-muted)]"}>
                   · {(pointsCost! - pointsBalance).toLocaleString()} short
                 </span>
               ))}

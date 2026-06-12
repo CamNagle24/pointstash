@@ -7,6 +7,8 @@ import { ChevronDown, Filter, Loader2, AlertCircle, Search, Clock, LayoutGrid, C
 import { CHAINS, CHAIN_IDS } from "@/lib/constants";
 import { useDeals } from "@/hooks/useDeals";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useRedemptions } from "@/hooks/useRedemptions";
+import { estimatedDealValueCents } from "@/lib/dashboard";
 import { syncOffers } from "@/lib/extension-bridge";
 import { DealCard } from "@/components/dashboard/DealCard";
 import { DealsCalendar } from "@/components/dashboard/DealsCalendar";
@@ -74,6 +76,7 @@ export default function DealsPage() {
 function DealsPageContent() {
   const { deals, error, isLoading, mutate } = useDeals();
   const { accounts } = useAccounts();
+  const { redemptions } = useRedemptions();
   const searchParams = useSearchParams();
 
   // On mount, ask the extension to harvest the user's redeemable offers from
@@ -150,6 +153,15 @@ function DealsPageContent() {
     for (const a of accounts) m[a.chain.slug] = a.currentPoints;
     return m;
   }, [accounts]);
+
+  // Estimated cash value (cents) of each points-cost deal, valued at its chain's
+  // best redemption rate, so a card can show worth alongside cost. Keyed by deal
+  // id; absent for non-points deals or chains we have no redemptions for.
+  const valueCentsByDeal = React.useMemo(() => {
+    const m: Record<string, number | null> = {};
+    for (const d of deals) m[d.id] = estimatedDealValueCents(d.chainId, d.pointsCost, redemptions);
+    return m;
+  }, [deals, redemptions]);
 
   // The "Affordable" toggle is only meaningful once we know a balance to compare
   // against, so it's hidden unless the user tracks a chain and some deal has a
@@ -438,6 +450,7 @@ function DealsPageContent() {
               isVerified={deal.isVerified}
               pointsCost={deal.pointsCost}
               pointsBalance={pointsByChain[deal.chain?.slug ?? ""] ?? null}
+              redemptionValueCents={valueCentsByDeal[deal.id] ?? null}
               index={i}
             />
           ))}

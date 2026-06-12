@@ -35,6 +35,28 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "value", label: "Points: low to high" },
 ];
 
+// --- URL <-> filter state codecs ------------------------------------------
+// The feed mirrors its view state in the query string so reloads restore it and
+// links are shareable. Parsers are defensive: unknown values fall back to the
+// default so a hand-edited URL can never wedge the feed.
+
+// Returns null when the `chains` param is absent (lets the account-based seed
+// run); an explicit empty/`all` value yields an empty set (= every chain).
+function parseChains(raw: string | null): Set<ChainId> | null {
+  if (raw == null) return null;
+  if (raw === "" || raw === "all") return new Set();
+  return new Set(raw.split(",").filter((s): s is ChainId => s in CHAINS));
+}
+
+function parseTypes(raw: string | null): Set<string> {
+  if (!raw) return new Set();
+  return new Set(raw.split(",").filter((t) => dealTypes.includes(t)));
+}
+
+function parseSort(raw: string | null): SortMode {
+  return SORT_OPTIONS.some((o) => o.value === raw) ? (raw as SortMode) : "expiring";
+}
+
 export default function DealsPage() {
   return (
     <React.Suspense
@@ -66,13 +88,18 @@ function DealsPageContent() {
       cancelled = true;
     };
   }, [mutate]);
-  const [chainFilter, setChainFilter] = React.useState<Set<ChainId>>(new Set());
+  // Filter/sort/view state seeds from the query string on mount and is mirrored
+  // back to it by the effect below (see the URL codecs above).
+  const [chainFilter, setChainFilter] = React.useState<Set<ChainId>>(
+    () => parseChains(searchParams.get("chains")) ?? new Set(),
+  );
 
   // Personalize the feed: once the user's linked accounts load, default the
   // chain filter to the chains they actually track. Seeded once so it never
   // fights the user's own filter clicks; "All chains" clears it to show every
   // chain. Users with no linked accounts keep the unfiltered (all chains) view.
-  const seededRef = React.useRef(false);
+  // A `chains` URL param is authoritative, so it pre-marks the seed as done.
+  const seededRef = React.useRef(searchParams.get("chains") != null);
   React.useEffect(() => {
     if (seededRef.current || accounts.length === 0) return;
     const linked = accounts
@@ -83,8 +110,10 @@ function DealsPageContent() {
       setChainFilter(new Set(linked));
     }
   }, [accounts]);
-  const [typeFilter, setTypeFilter] = React.useState<Set<string>>(new Set());
-  const [endingSoon, setEndingSoon] = React.useState(false);
+  const [typeFilter, setTypeFilter] = React.useState<Set<string>>(
+    () => parseTypes(searchParams.get("type")),
+  );
+  const [endingSoon, setEndingSoon] = React.useState(() => searchParams.get("ending") === "1");
   // Honor a ?affordable=1 deep link (e.g. from the dashboard "Affordable now"
   // stat) by pre-enabling the toggle. Read once on mount so it never fights the
   // user's later clicks.
@@ -92,8 +121,27 @@ function DealsPageContent() {
     () => searchParams.get("affordable") === "1",
   );
   const [search, setSearch] = React.useState("");
-  const [viewMode, setViewMode] = React.useState<"list" | "calendar">("list");
-  const [sortMode, setSortMode] = React.useState<SortMode>("expiring");
+  const [viewMode, setViewMode] = React.useState<"list" | "calendar">(
+    () => (searchParams.get("view") === "calendar" ? "calendar" : "list"),
+  );
+  const [sortMode, setSortMode] = React.useState<SortMode>(() => parseSort(searchParams.get("sort")));
+
+  // Mirror the current view state into the URL with replaceState (no history
+  // spam, no router navigation/refetch) so a reload or shared link restores it.
+  // Defaults are omitted to keep the URL clean; the `all` sentinel preserves an
+  // explicit "every chain" choice that would otherwise re-trigger the seed.
+  React.useEffect(() => {
+    const params = new URLSearchParams();
+    if (chainFilter.size > 0) params.set("chains", [...chainFilter].join(","));
+    else if (seededRef.current) params.set("chains", "all");
+    if (typeFilter.size > 0) params.set("type", [...typeFilter].join(","));
+    if (endingSoon) params.set("ending", "1");
+    if (affordableOnly) params.set("affordable", "1");
+    if (sortMode !== "expiring") params.set("sort", sortMode);
+    if (viewMode !== "list") params.set("view", viewMode);
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  }, [chainFilter, typeFilter, endingSoon, affordableOnly, sortMode, viewMode]);
 
   // Per-chain balances for the signed-in user, so a points-cost deal can show
   // whether they can already afford it. Empty when no accounts are linked.

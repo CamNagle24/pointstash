@@ -14,7 +14,7 @@ import {
   discountTypeLabel,
   discountTypeBadgeVariant,
 } from "@/lib/formatters";
-import { timeUntil, dealHref } from "@/lib/utils";
+import { timeUntil, dealHref, formatCurrency } from "@/lib/utils";
 
 type DealCardProps = {
   chainSlug: ChainId;
@@ -34,6 +34,8 @@ type DealCardProps = {
   pointsCost?: number | null;
   /** The signed-in user's balance for this chain, when they track it. */
   pointsBalance?: number | null;
+  /** Estimated cash value (cents) of the points cost at the chain's best rate. */
+  redemptionValueCents?: number | null;
   index?: number;
 };
 
@@ -51,6 +53,7 @@ export function DealCard({
   isVerified,
   pointsCost,
   pointsBalance,
+  redemptionValueCents,
   index = 0,
 }: DealCardProps) {
   const chain = CHAINS[chainSlug];
@@ -111,11 +114,19 @@ export function DealCard({
         </div>
 
         {showPoints && (
-          <div className="mt-4 flex items-center gap-1.5 text-xs">
+          <div className="mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
             <Coins className="h-3.5 w-3.5 text-[var(--accent)]" />
             <span className="font-medium text-[var(--text-secondary)]">
               {pointsCost!.toLocaleString()} pts
             </span>
+            {redemptionValueCents != null && (
+              <span
+                className="text-[var(--text-muted)]"
+                title="Estimated value at this chain's best redemption rate"
+              >
+                · ≈ {formatCurrency(redemptionValueCents)} value
+              </span>
+            )}
             {pointsBalance != null &&
               (canAfford ? (
                 <span className="flex items-center gap-1 text-[#4ade80]">

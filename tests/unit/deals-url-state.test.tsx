@@ -6,13 +6,15 @@ import type { Deal } from "@/types/deal";
 // Same offline harness as the other feed tests, plus a controllable
 // searchParams ref so each test can seed the page from a specific query string
 // and assert what gets mirrored back into the URL.
-const { useDealsMock, useAccountsMock, searchParamsRef } = vi.hoisted(() => ({
+const { useDealsMock, useAccountsMock, searchParamsRef, redemptionsRef } = vi.hoisted(() => ({
   useDealsMock: vi.fn(),
   useAccountsMock: vi.fn(),
   searchParamsRef: { current: new URLSearchParams() },
+  redemptionsRef: { current: [] as unknown[] },
 }));
 vi.mock("@/hooks/useDeals", () => ({ useDeals: useDealsMock }));
 vi.mock("@/hooks/useAccounts", () => ({ useAccounts: useAccountsMock }));
+vi.mock("@/hooks/useRedemptions", () => ({ useRedemptions: () => ({ redemptions: redemptionsRef.current }) }));
 vi.mock("@/lib/extension-bridge", () => ({ syncOffers: vi.fn().mockResolvedValue({ synced: [] }) }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => searchParamsRef.current }));
 
@@ -68,6 +70,7 @@ beforeEach(() => {
   useDealsMock.mockReset();
   useAccountsMock.mockReset().mockReturnValue({ accounts: [] });
   searchParamsRef.current = new URLSearchParams();
+  redemptionsRef.current = [];
   window.history.replaceState(null, "", "/dashboard/deals");
 });
 
@@ -127,6 +130,22 @@ describe("DealsPage — URL view state", () => {
     searchParamsRef.current = new URLSearchParams("sort=banana");
     render(<DealsPage />);
     expect(titleOrder()).toEqual(["Soon", "Later"]);
+  });
+
+  it("shows an estimated dollar value priced at the chain's best rate", () => {
+    // 100 pts at 1.5¢/pt = 150¢ = $1.50.
+    redemptionsRef.current = [{ chainId: "c1", centsPerPoint: 1.5 }];
+    mockDeals([deal({ title: "Solo", pointsCost: 100 })]);
+    render(<DealsPage />);
+    expect(screen.getByText(/≈ \$1\.50 value/)).toBeInTheDocument();
+  });
+
+  it("omits the value when the chain has no redemptions to price against", () => {
+    redemptionsRef.current = [];
+    mockDeals([deal({ title: "Solo", pointsCost: 100 })]);
+    render(<DealsPage />);
+    expect(screen.queryByText(/value/)).not.toBeInTheDocument();
+    expect(screen.getByText("100 pts")).toBeInTheDocument();
   });
 
   it("mirrors a sort change back into the URL", async () => {

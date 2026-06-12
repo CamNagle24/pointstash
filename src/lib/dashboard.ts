@@ -26,6 +26,22 @@ export function bestRedemptionLabel(
 }
 
 /**
+ * Estimated cash value (in cents) of redeeming a points-cost deal, valued at
+ * the chain's best cents-per-point redemption rate. Null when the deal has no
+ * points cost or the chain has no known redemptions to price it against.
+ */
+export function estimatedDealValueCents(
+  chainId: string,
+  pointsCost: number | null | undefined,
+  redemptions: RedemptionOption[],
+): number | null {
+  if (pointsCost == null) return null;
+  const best = bestRedemptionFor(chainId, redemptions);
+  if (!best) return null;
+  return pointsCost * best.centsPerPoint;
+}
+
+/**
  * Sum total dollar value across linked accounts using each account's best
  * redemption rate (cents-per-point). Falls back to 0 for chains with no
  * redemptions yet.

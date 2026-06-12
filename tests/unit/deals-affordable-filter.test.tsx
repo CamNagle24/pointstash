@@ -13,6 +13,7 @@ const { useDealsMock, useAccountsMock, searchParamsRef } = vi.hoisted(() => ({
 vi.mock("@/hooks/useDeals", () => ({ useDeals: useDealsMock }));
 vi.mock("@/hooks/useAccounts", () => ({ useAccounts: useAccountsMock }));
 vi.mock("@/lib/extension-bridge", () => ({ syncOffers: vi.fn().mockResolvedValue({ synced: [] }) }));
+vi.mock("@/hooks/useRedemptions", () => ({ useRedemptions: () => ({ redemptions: [] }) }));
 // Override the global next/navigation stub so this file can drive the URL params
 // the page reads on mount (the ?affordable=1 deep link).
 vi.mock("next/navigation", () => ({ useSearchParams: () => searchParamsRef.current }));

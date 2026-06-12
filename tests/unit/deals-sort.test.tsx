@@ -12,6 +12,7 @@ const { useDealsMock, useAccountsMock } = vi.hoisted(() => ({
 vi.mock("@/hooks/useDeals", () => ({ useDeals: useDealsMock }));
 vi.mock("@/hooks/useAccounts", () => ({ useAccounts: useAccountsMock }));
 vi.mock("@/lib/extension-bridge", () => ({ syncOffers: vi.fn().mockResolvedValue({ synced: [] }) }));
+vi.mock("@/hooks/useRedemptions", () => ({ useRedemptions: () => ({ redemptions: [] }) }));
 
 import DealsPage from "@/app/dashboard/deals/page";
 

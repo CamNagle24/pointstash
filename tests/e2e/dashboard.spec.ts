@@ -56,3 +56,51 @@ test.describe("dashboard home", () => {
     await expect(page.getByRole("button", { name: /link account/i })).toBeVisible();
   });
 });
+
+// The affordability arc: linked accounts (seeded) give every points-cost deal a
+// balance to compare against, which surfaces the dashboard "Affordable now" stat
+// and the deals-feed "Affordable" toggle. Linking itself is exercised by
+// add-account.spec; here the seeded accounts are the precondition.
+test.describe("affordability flow", () => {
+  test("the Affordable-now stat deep-links into a redeemable-only feed", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/dashboard");
+
+    // The stat is a link, and only renders once accounts are linked.
+    const affordableStat = page.getByRole("link", { name: /affordable now/i });
+    await expect(affordableStat).toBeVisible();
+    await affordableStat.click();
+
+    // Lands on the deals feed carrying the affordable deep-link param. The page
+    // also mirrors the seeded chain filter into the URL, so match loosely.
+    await expect(page).toHaveURL(/\/dashboard\/deals\?.*\baffordable=1\b/);
+
+    // The toggle renders (it needs a balance to compare against) and the deep
+    // link pre-enabled it, so the feed is scoped to redeemable deals: the filter
+    // drops every points deal the user can't yet afford. Either some affordable
+    // cards show, or the affordability empty state — but never a "N short" line,
+    // which only appears on a deal the user can't afford.
+    await expect(page.getByRole("button", { name: /^affordable$/i })).toBeVisible();
+    await expect(page.getByText(/\d[\d,]* short\b/)).toHaveCount(0);
+  });
+
+  test("toggling Affordable narrows the feed to a redeemable subset", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/dashboard/deals");
+
+    // Wait for the feed to settle — each card carries exactly one CTA button.
+    const cta = page.getByRole("button", { name: /open in app|redeem|view deal/i });
+    await expect(cta.first()).toBeVisible();
+    const before = await cta.count();
+
+    const toggle = page.getByRole("button", { name: /^affordable$/i });
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+
+    // The filter records itself in the URL and can only shrink the feed
+    // (affordable deals are a strict subset), leaving no unaffordable card.
+    await expect(page).toHaveURL(/\baffordable=1\b/);
+    expect(await cta.count()).toBeLessThanOrEqual(before);
+    await expect(page.getByText(/\d[\d,]* short\b/)).toHaveCount(0);
+  });
+});

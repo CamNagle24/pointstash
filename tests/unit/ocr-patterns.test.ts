@@ -69,4 +69,57 @@ describe("extractPointsFromText", () => {
     const result = extractPointsFromText("   ", "mcdonalds");
     expect(result.extractedPoints).toBeNull();
   });
+
+  it("handles an unrecognized chain slug without throwing", () => {
+    const result = extractPointsFromText("1,500 points available", "some-unknown-chain");
+    expect(result.extractedPoints).toBe(1500);
+    expect(result.matchedPattern).toBe("fallback");
+    expect(result.confidence).toBe("low");
+  });
+
+  it("does not throw on an empty chain slug", () => {
+    expect(() => extractPointsFromText("420 points", "")).not.toThrow();
+  });
+
+  it("does not throw on garbage/symbol-only input", () => {
+    const result = extractPointsFromText("@#$%^&*()_+ ???!!!", "mcdonalds");
+    expect(result.extractedPoints).toBeNull();
+    expect(result.matchedPattern).toBe("none");
+  });
+
+  it("collapses newlines and tabs before matching", () => {
+    const result = extractPointsFromText("You have\n\t6,240\nPoints", "mcdonalds");
+    expect(result.extractedPoints).toBe(6240);
+    expect(result.rawText).toBe("You have 6,240 Points");
+  });
+
+  it("is case-insensitive for chain and fallback patterns", () => {
+    const result = extractPointsFromText("420 POINTS earned", "mcdonalds");
+    expect(result.extractedPoints).toBe(420);
+    expect(result.confidence).toBe("high");
+  });
+
+  it("corrects combined OCR digit confusions within a single number", () => {
+    // Digit-letter-digit runs get every letter swapped, not just the first.
+    expect(correctOcrDigits("62S0")).toBe("6250");
+    // A leading letter run swaps too when it precedes a digit.
+    expect(correctOcrDigits("B42O")).toBe("8420");
+  });
+
+  it("corrects OCR artifacts for Dunkin' points", () => {
+    const result = extractPointsFromText("S5O points redeemed", "dunkin");
+    expect(result.extractedPoints).toBe(550);
+    expect(result.confidence).toBe("high");
+  });
+
+  it("corrects OCR artifacts for Subway tokens", () => {
+    const result = extractPointsFromText("MVP balance: 62S0 tokens", "subway");
+    expect(result.extractedPoints).toBe(6250);
+    expect(result.confidence).toBe("high");
+  });
+
+  it("handles extremely large point totals", () => {
+    const result = extractPointsFromText("999,999,999 points", "wendys");
+    expect(result.extractedPoints).toBe(999999999);
+  });
 });

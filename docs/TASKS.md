@@ -11,7 +11,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 - [ ] Add CI workflow `.github/workflows/ci.yml` — `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run` on PRs to main; green on default branch.
 - [ ] OCR edge-case tests in `src/lib/ocr.ts` — common OCR artifacts are corrected per chain; malformed input fails gracefully (no throw).
-- [ ] Raise scraper coverage — add unit tests (with fixtures) for chains in `src/lib/scrapers/` currently missing them; no live network in tests.
 - [ ] Playwright E2E for the redeem flow — sign in (seeded/MSW), view a deal, complete a redeem, see the balance update.
   > blocked: no in-app "complete a redeem" action exists yet — the Redeem CTA on `DealCard` (`src/components/dashboard/DealCard.tsx`) just opens an external link in a new tab; there's no balance-deduction flow to test. Needs architect design of a redemption-completion feature (see the design task below) before this E2E can be written.
 - [ ] Harden `isCronRequest` against an unset `CRON_SECRET` — `src/lib/api.ts` builds `Bearer ${process.env.CRON_SECRET}`, so if the env var is ever unset a literal `Authorization: Bearer undefined` header passes. Reject when `CRON_SECRET` is empty/undefined regardless of header value; add a regression test in `tests/unit/api-guards.test.ts`.

@@ -9,7 +9,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Queue
 
-- [ ] Cents-per-point ranking unit tests — given balances + redemption options, the highest cents-per-point redemption is surfaced first; ties and zero-point cases handled.
+- [ ] Add CI workflow `.github/workflows/ci.yml` — `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run` on PRs to main; green on default branch.
 - [ ] OCR edge-case tests in `src/lib/ocr.ts` — common OCR artifacts are corrected per chain; malformed input fails gracefully (no throw).
 - [ ] Raise scraper coverage — add unit tests (with fixtures) for chains in `src/lib/scrapers/` currently missing them; no live network in tests.
 - [ ] Playwright E2E for the redeem flow — sign in (seeded/MSW), view a deal, complete a redeem, see the balance update.
@@ -18,4 +18,4 @@ Format: `- [ ] <title> — <acceptance criteria>`
 ## Done
 <!-- routine PRs move completed items here -->
 
-- [x] Add CI workflow `.github/workflows/ci.yml` — `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run` on PRs to main; green on default branch.
+- [x] Cents-per-point ranking unit tests — given balances + redemption options, the highest cents-per-point redemption is surfaced first; ties and zero-point cases handled.

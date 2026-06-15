@@ -60,6 +60,28 @@ describe("sortRedemptionsByValue", () => {
       expect(r).toHaveProperty("itemName");
     }
   });
+
+  it("preserves input order for tied centsPerPoint values", () => {
+    const tied: Redemption[] = [
+      { id: "first", chainSlug: "wendys", itemName: "Frosty", pointsCost: 100, retailPriceCents: 199 },
+      { id: "second", chainSlug: "tacobell", itemName: "Taco", pointsCost: 200, retailPriceCents: 398 }, // same 1.99 ¢/pt
+      { id: "third", chainSlug: "subway", itemName: "Footlong", pointsCost: 800, retailPriceCents: 999 }, // 1.249
+    ];
+    const ranked = sortRedemptionsByValue(tied);
+    expect(ranked.map((r) => r.id)).toEqual(["first", "second", "third"]);
+    expect(ranked[0].centsPerPoint).toBeCloseTo(ranked[1].centsPerPoint, 5);
+  });
+
+  it("ranks zero-point-cost redemptions last instead of dividing by zero", () => {
+    const items: Redemption[] = [
+      { id: "free", chainSlug: "wendys", itemName: "Freebie", pointsCost: 0, retailPriceCents: 199 },
+      { id: "negative", chainSlug: "subway", itemName: "Glitch", pointsCost: -10, retailPriceCents: 999 },
+      { id: "valuable", chainSlug: "starbucks", itemName: "Drink", pointsCost: 200, retailPriceCents: 545 },
+    ];
+    const ranked = sortRedemptionsByValue(items);
+    expect(ranked[0].id).toBe("valuable");
+    expect(ranked.slice(1).map((r) => r.centsPerPoint)).toEqual([0, 0]);
+  });
 });
 
 describe("calculateTotalValue", () => {

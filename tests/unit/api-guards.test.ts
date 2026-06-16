@@ -82,4 +82,15 @@ describe("isCronRequest", () => {
     delete process.env.CRON_SECRET;
     expect(isCronRequest(cronReq("Bearer test-cron-secret"))).toBe(false);
   });
+
+  it("rejects 'Bearer undefined' when CRON_SECRET is unset", () => {
+    delete process.env.CRON_SECRET;
+    expect(isCronRequest(cronReq("Bearer undefined"))).toBe(false);
+  });
+
+  it("rejects any header when CRON_SECRET is empty string", () => {
+    process.env.CRON_SECRET = "";
+    expect(isCronRequest(cronReq("Bearer "))).toBe(false);
+    expect(isCronRequest(cronReq("Bearer undefined"))).toBe(false);
+  });
 });

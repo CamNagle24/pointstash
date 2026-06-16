@@ -14,8 +14,10 @@ export async function requireAuth(): Promise<GuardResult> {
 }
 
 export function isCronRequest(req: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
   const header = req.headers.get("authorization");
-  return header === `Bearer ${process.env.CRON_SECRET}`;
+  return header === `Bearer ${secret}`;
 }
 
 /** Parse ADMIN_EMAIL (comma-separated, trimmed, lowercased) into a set. */

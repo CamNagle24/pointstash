@@ -27,9 +27,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return errorJson("Invalid input", 400, parsed.error.flatten());
     }
 
-    const account = await db.account.findUnique({ where: { id } });
+    const account = await db.account.findFirst({ where: { id, userId: guard.userId } });
     if (!account) return errorJson("Account not found", 404);
-    if (account.userId !== guard.userId) return errorJson("Forbidden", 403);
 
     const pointsChanged =
       parsed.data.currentPoints !== undefined &&
@@ -74,9 +73,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if ("response" in guard) return guard.response;
 
     const { id } = await params;
-    const account = await db.account.findUnique({ where: { id } });
+    const account = await db.account.findFirst({ where: { id, userId: guard.userId } });
     if (!account) return errorJson("Account not found", 404);
-    if (account.userId !== guard.userId) return errorJson("Forbidden", 403);
 
     await db.account.update({
       where: { id: account.id },

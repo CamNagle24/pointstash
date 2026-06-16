@@ -1,3 +1,7 @@
+// Stub method signatures intentionally name their parameters for documentation
+// even though every body throws NotImplementedError before using them.
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /**
  * Connector contract for chains that expose (or that we've reverse-engineered)
  * a programmatic way to fetch a user's points balance.

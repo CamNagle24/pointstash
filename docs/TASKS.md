@@ -16,7 +16,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [ ] Fix lint warnings in `src/lib/connectors/base.ts` — resolve the 4 `@typescript-eslint/no-unused-vars` warnings on the `_credentials`/`_token` stub parameters (e.g. an eslint override for this file, or restructure the stub signatures) without changing `BaseConnector`'s public contract; `npm run lint` reports zero warnings on this file.
 - [ ] Unit tests for the connectors registry (`src/lib/connectors/`) — `getConnector` returns the right connector per chain slug and `undefined` for unknown slugs; `hasImplementedConnector` reflects each connector's `implemented` flag; every unimplemented connector's `authenticate`/`getPointsBalance`/`getRecentTransactions`/`refreshToken` reject with `NotImplementedError`.
 - [ ] API tests for `/api/accounts/[id]` edge cases — `PUT`/`DELETE` return 404 (not 403, to avoid leaking existence) for an account belonging to another user; invalid/non-numeric `currentPoints` is rejected with 400; verifies per-user scoping in the underlying query.
-- [ ] Unit tests for `src/lib/deal-reminder-email.ts` — subject/body rendering for 0, 1, and many upcoming-expiry deals (pluralization), and deals across multiple chains in one digest.
+- [x] Unit tests for `src/lib/deal-reminder-email.ts` — subject/body rendering for 0, 1, and many upcoming-expiry deals (pluralization), and deals across multiple chains in one digest.
 - [ ] Unit tests for `src/lib/extension-auth.ts` and `src/lib/extension-bridge.ts` — pairing-token issuance, expiry, and rejection of malformed/expired/already-used tokens.
 - [ ] Unit tests for `src/lib/points-history.ts` — series aggregation across a date range with gaps (no recorded points on some days), multiple accounts for the same user, and an account with a single data point.
 - [ ] Edge-case unit tests for `src/lib/deal-reminders.ts` — a deal expiring exactly at the reminder cutoff boundary, a deal with no `expiresAt`, and a deal that already has a reminder recorded (no duplicate send).
@@ -31,3 +31,4 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [x] OCR edge-case tests in `src/lib/ocr.ts` — common OCR artifacts are corrected per chain; malformed input fails gracefully (no throw).
 - [x] API auth/cron guard tests — `requireAuth` rejects unauthenticated calls; `isCronRequest` only accepts the configured cron secret.
 - [x] Cents-per-point ranking unit tests — given balances + redemption options, the highest cents-per-point redemption is surfaced first; ties and zero-point cases handled.
+- [x] Unit tests for `src/lib/deal-reminder-email.ts` — subject/body rendering for 0, 1, and many upcoming-expiry deals (pluralization), and deals across multiple chains in one digest.

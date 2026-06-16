@@ -6,6 +6,7 @@ const {
   authMock,
   acctFindManyMock,
   acctFindUniqueMock,
+  acctFindFirstMock,
   acctCreateMock,
   acctUpdateMock,
   chainFindUniqueMock,
@@ -15,6 +16,7 @@ const {
   authMock: vi.fn(),
   acctFindManyMock: vi.fn(),
   acctFindUniqueMock: vi.fn(),
+  acctFindFirstMock: vi.fn(),
   acctCreateMock: vi.fn(),
   acctUpdateMock: vi.fn(),
   chainFindUniqueMock: vi.fn(),
@@ -27,6 +29,7 @@ vi.mock("@/lib/db", () => ({
     account: {
       findMany: acctFindManyMock,
       findUnique: acctFindUniqueMock,
+      findFirst: acctFindFirstMock,
       create: acctCreateMock,
       update: acctUpdateMock,
     },
@@ -61,6 +64,7 @@ beforeEach(() => {
   authMock.mockReset().mockResolvedValue(signedIn);
   acctFindManyMock.mockReset().mockResolvedValue([]);
   acctFindUniqueMock.mockReset();
+  acctFindFirstMock.mockReset();
   acctCreateMock.mockReset().mockResolvedValue({ id: "acct_1" });
   acctUpdateMock.mockReset().mockResolvedValue({ id: "acct_1" });
   chainFindUniqueMock.mockReset().mockResolvedValue({ id: "chain_w" });
@@ -111,20 +115,46 @@ describe("POST /api/accounts", () => {
 });
 
 describe("PUT /api/accounts/[id]", () => {
-  it("403s when the account belongs to another user", async () => {
-    acctFindUniqueMock.mockResolvedValue({ id: "acct_1", userId: "someone_else", currentPoints: 0 });
+  it("404s when the account belongs to another user (no existence leak)", async () => {
+    // findFirst with { id, userId } returns null for another user's account
+    acctFindFirstMock.mockResolvedValue(null);
     const res = await PUT(jsonReq("PUT", { currentPoints: 10 }), params("acct_1"));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
     expect(transactionMock).not.toHaveBeenCalled();
   });
 
+  it("scopes the account lookup to the authenticated user", async () => {
+    acctFindFirstMock.mockResolvedValue(null);
+    await PUT(jsonReq("PUT", { currentPoints: 10 }), params("acct_1"));
+    expect(acctFindFirstMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user_1" }) }),
+    );
+  });
+
   it("404s a missing account", async () => {
-    acctFindUniqueMock.mockResolvedValue(null);
+    acctFindFirstMock.mockResolvedValue(null);
     expect((await PUT(jsonReq("PUT", { currentPoints: 10 }), params("x"))).status).toBe(404);
   });
 
+  it("400s when currentPoints is a non-numeric string", async () => {
+    const res = await PUT(jsonReq("PUT", { currentPoints: "not-a-number" }), params("acct_1"));
+    expect(res.status).toBe(400);
+    expect(transactionMock).not.toHaveBeenCalled();
+  });
+
+  it("400s when currentPoints is negative", async () => {
+    const res = await PUT(jsonReq("PUT", { currentPoints: -1 }), params("acct_1"));
+    expect(res.status).toBe(400);
+    expect(transactionMock).not.toHaveBeenCalled();
+  });
+
+  it("400s when the request body is empty", async () => {
+    const res = await PUT(jsonReq("PUT", {}), params("acct_1"));
+    expect(res.status).toBe(400);
+  });
+
   it("logs a history row when points change", async () => {
-    acctFindUniqueMock.mockResolvedValue({ id: "acct_1", userId: "user_1", currentPoints: 100 });
+    acctFindFirstMock.mockResolvedValue({ id: "acct_1", userId: "user_1", currentPoints: 100 });
     const res = await PUT(jsonReq("PUT", { currentPoints: 250 }), params("acct_1"));
     expect(res.status).toBe(200);
     expect(pointsCreateMock).toHaveBeenCalledWith(
@@ -135,20 +165,29 @@ describe("PUT /api/accounts/[id]", () => {
   });
 
   it("does not log history when points are unchanged", async () => {
-    acctFindUniqueMock.mockResolvedValue({ id: "acct_1", userId: "user_1", currentPoints: 100 });
+    acctFindFirstMock.mockResolvedValue({ id: "acct_1", userId: "user_1", currentPoints: 100 });
     await PUT(jsonReq("PUT", { currentPoints: 100, loyaltyId: "abc" }), params("acct_1"));
     expect(pointsCreateMock).not.toHaveBeenCalled();
   });
 });
 
 describe("DELETE /api/accounts/[id]", () => {
-  it("403s another user's account", async () => {
-    acctFindUniqueMock.mockResolvedValue({ id: "acct_1", userId: "other" });
-    expect((await DELETE(jsonReq("DELETE"), params("acct_1"))).status).toBe(403);
+  it("404s an account belonging to another user (no existence leak)", async () => {
+    // findFirst with { id, userId } returns null for another user's account
+    acctFindFirstMock.mockResolvedValue(null);
+    expect((await DELETE(jsonReq("DELETE"), params("acct_1"))).status).toBe(404);
+  });
+
+  it("scopes the account lookup to the authenticated user", async () => {
+    acctFindFirstMock.mockResolvedValue(null);
+    await DELETE(jsonReq("DELETE"), params("acct_1"));
+    expect(acctFindFirstMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user_1" }) }),
+    );
   });
 
   it("soft-deletes (isActive=false) the caller's account", async () => {
-    acctFindUniqueMock.mockResolvedValue({ id: "acct_1", userId: "user_1" });
+    acctFindFirstMock.mockResolvedValue({ id: "acct_1", userId: "user_1" });
     const res = await DELETE(jsonReq("DELETE"), params("acct_1"));
     expect(res.status).toBe(200);
     expect(acctUpdateMock).toHaveBeenCalledWith({

@@ -17,7 +17,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [x] Unit tests for the connectors registry (`src/lib/connectors/`) — `getConnector` returns the right connector per chain slug and `undefined` for unknown slugs; `hasImplementedConnector` reflects each connector's `implemented` flag; every unimplemented connector's `authenticate`/`getPointsBalance`/`getRecentTransactions`/`refreshToken` reject with `NotImplementedError`.
 - [ ] API tests for `/api/accounts/[id]` edge cases — `PUT`/`DELETE` return 404 (not 403, to avoid leaking existence) for an account belonging to another user; invalid/non-numeric `currentPoints` is rejected with 400; verifies per-user scoping in the underlying query.
 - [ ] Unit tests for `src/lib/deal-reminder-email.ts` — subject/body rendering for 0, 1, and many upcoming-expiry deals (pluralization), and deals across multiple chains in one digest.
-- [ ] Unit tests for `src/lib/extension-auth.ts` and `src/lib/extension-bridge.ts` — pairing-token issuance, expiry, and rejection of malformed/expired/already-used tokens.
+- [x] Unit tests for `src/lib/extension-auth.ts` and `src/lib/extension-bridge.ts` — pairing-token issuance, expiry, and rejection of malformed/expired/already-used tokens.
 - [ ] Unit tests for `src/lib/points-history.ts` — series aggregation across a date range with gaps (no recorded points on some days), multiple accounts for the same user, and an account with a single data point.
 - [ ] Edge-case unit tests for `src/lib/deal-reminders.ts` — a deal expiring exactly at the reminder cutoff boundary, a deal with no `expiresAt`, and a deal that already has a reminder recorded (no duplicate send).
 - [ ] Accessibility pass on icon-only dashboard buttons — audit `ChainAccountCard`, `DealCard`, and `Sidebar`/`MobileNav` for icon-only buttons missing `aria-label` (e.g. unlink, redeem, nav icons); add labels so each is announced correctly by screen readers, with a test asserting accessible names via `getByRole`.
@@ -35,6 +35,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 ## Done
 <!-- routine PRs move completed items here -->
 
+- [x] Unit tests for `src/lib/extension-auth.ts` and `src/lib/extension-bridge.ts` — `requireExtensionAuth` tests: missing bearer, non-bearer, unknown token, revoked token, valid token → { userId, tokenId }, hash-based lookup verified; `chainHasExtensionSupport` and `EXTENSION_SUPPORTED_CHAINS` size/content tested in `tests/unit/extension-auth-unit.test.ts`.
 - [x] Add CI workflow `.github/workflows/ci.yml` — `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run` on PRs to main; green on default branch.
 - [x] OCR edge-case tests in `src/lib/ocr.ts` — common OCR artifacts are corrected per chain; malformed input fails gracefully (no throw).
 - [x] API auth/cron guard tests — `requireAuth` rejects unauthenticated calls; `isCronRequest` only accepts the configured cron secret.

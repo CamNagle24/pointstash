@@ -48,6 +48,22 @@ describe("isExpiringSoon", () => {
   it("defaults to a 72h window constant", () => {
     expect(REMINDER_WINDOW_HOURS).toBe(72);
   });
+
+  it("is true at the exact 72h boundary (inclusive <=)", () => {
+    const exactBoundary = hoursFromNow(REMINDER_WINDOW_HOURS);
+    expect(isExpiringSoon(deal({ id: "g", expiresAt: exactBoundary }), now)).toBe(true);
+  });
+
+  it("is false when the deal expires exactly at now (ms === 0, not > 0)", () => {
+    expect(isExpiringSoon(deal({ id: "h", expiresAt: now }), now)).toBe(false);
+  });
+
+  it("is false and does not throw when expiresAt is an invalid Date (NaN ms)", () => {
+    expect(() =>
+      isExpiringSoon(deal({ id: "i", expiresAt: new Date(NaN) }), now),
+    ).not.toThrow();
+    expect(isExpiringSoon(deal({ id: "j", expiresAt: new Date(NaN) }), now)).toBe(false);
+  });
 });
 
 describe("groupExpiringDealsByUser", () => {
@@ -168,6 +184,17 @@ describe("removeAlreadyReminded", () => {
     const sent = new Map([["u", new Set(["wendys:free fries"])]]);
     expect(removeAlreadyReminded(recreated, sent)).toEqual([]);
   });
+
+  it("does not duplicate output for a deal that is already in sentByUser (no-op idempotent)", () => {
+    // The deal is already reminded; the user should be entirely absent from output.
+    const u2: ReminderUser = { id: "u2", email: "u2@x.com", name: null, chainSlugs: ["wendys"] };
+    const g: UserReminder[] = [
+      { user: u2, deals: [deal({ id: "5", chainSlug: "wendys", title: "Promo A" })] },
+    ];
+    const sent = new Map([["u2", new Set(["wendys:promo a"])]]);
+    const result = removeAlreadyReminded(g, sent);
+    expect(result).toHaveLength(0);
+  });
 });
 
 describe("reminderDealLink", () => {
@@ -194,5 +221,10 @@ describe("expiresInLabel", () => {
     expect(expiresInLabel(deal({ id: "m", expiresAt: new Date(now.getTime() + 30 * 60 * 1000) }), now)).toBe(
       "in 30m",
     );
+  });
+
+  it("clamps sub-minute remaining time to 'in 1m'", () => {
+    const thirtySeconds = new Date(now.getTime() + 30 * 1000);
+    expect(expiresInLabel(deal({ id: "s", expiresAt: thirtySeconds }), now)).toBe("in 1m");
   });
 });

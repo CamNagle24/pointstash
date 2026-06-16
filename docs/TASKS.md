@@ -9,10 +9,11 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Queue
 
+- [ ] Implement `POST /api/accounts/[id]/redeem` — accepts `{ redemptionOptionId }`, verifies account ownership (404 on missing/other-user), verifies option belongs to the same chain and user has sufficient points (400 otherwise), atomically deducts `pointsCost` from `currentPoints` and inserts a `PointsHistory` row with `changeReason: "REDEMPTION"`; returns `{ account, pointsHistory }`; add unit tests in `tests/unit/api-accounts-redeem.test.ts`. See design in `docs/DECISIONS.md` (2026-06-16).
 - [ ] Playwright E2E for the redeem flow — sign in (seeded/MSW), view a deal, complete a redeem, see the balance update.
-  > blocked: no in-app "complete a redeem" action exists yet — the Redeem CTA on `DealCard` (`src/components/dashboard/DealCard.tsx`) just opens an external link in a new tab; there's no balance-deduction flow to test. Needs architect design of a redemption-completion feature (see the design task below) before this E2E can be written.
+  > blocked: no in-app "complete a redeem" action exists yet — the Redeem CTA on `DealCard` (`src/components/dashboard/DealCard.tsx`) just opens an external link in a new tab; there's no balance-deduction flow to test. Needs the `POST /api/accounts/[id]/redeem` route and UI affordance to land first.
 - [ ] Harden `isCronRequest` against an unset `CRON_SECRET` — `src/lib/api.ts` builds `Bearer ${process.env.CRON_SECRET}`, so if the env var is ever unset a literal `Authorization: Bearer undefined` header passes. Reject when `CRON_SECRET` is empty/undefined regardless of header value; add a regression test in `tests/unit/api-guards.test.ts`.
-- [ ] Architect: design a redemption-completion flow — decompose "user marks a redemption option as redeemed, the linked account's points balance is deducted by `pointsCost`, and a `PointsHistory` entry is recorded" into implementable tasks (schema check, API route, UI affordance on `RedeemPage`/`DealCard`). Record the design in `docs/DECISIONS.md` and leave a follow-up implementation task at the top of the queue. Unblocks the redeem-flow E2E above.
+- [x] Architect: design a redemption-completion flow — decompose "user marks a redemption option as redeemed, the linked account's points balance is deducted by `pointsCost`, and a `PointsHistory` entry is recorded" into implementable tasks (schema check, API route, UI affordance on `RedeemPage`/`DealCard`). Record the design in `docs/DECISIONS.md` and leave a follow-up implementation task at the top of the queue. Unblocks the redeem-flow E2E above.
 - [ ] Fix lint warnings in `src/lib/connectors/base.ts` — resolve the 4 `@typescript-eslint/no-unused-vars` warnings on the `_credentials`/`_token` stub parameters (e.g. an eslint override for this file, or restructure the stub signatures) without changing `BaseConnector`'s public contract; `npm run lint` reports zero warnings on this file.
 - [x] Unit tests for the connectors registry (`src/lib/connectors/`) — `getConnector` returns the right connector per chain slug and `undefined` for unknown slugs; `hasImplementedConnector` reflects each connector's `implemented` flag; every unimplemented connector's `authenticate`/`getPointsBalance`/`getRecentTransactions`/`refreshToken` reject with `NotImplementedError`.
 - [ ] API tests for `/api/accounts/[id]` edge cases — `PUT`/`DELETE` return 404 (not 403, to avoid leaking existence) for an account belonging to another user; invalid/non-numeric `currentPoints` is rejected with 400; verifies per-user scoping in the underlying query.
@@ -35,6 +36,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 ## Done
 <!-- routine PRs move completed items here -->
 
+- [x] Architect: design a redemption-completion flow — design recorded in `docs/DECISIONS.md` (2026-06-16); `POST /api/accounts/[id]/redeem` impl task added to top of queue; E2E blocked task updated.
 - [x] Add CI workflow `.github/workflows/ci.yml` — `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run` on PRs to main; green on default branch.
 - [x] OCR edge-case tests in `src/lib/ocr.ts` — common OCR artifacts are corrected per chain; malformed input fails gracefully (no throw).
 - [x] API auth/cron guard tests — `requireAuth` rejects unauthenticated calls; `isCronRequest` only accepts the configured cron secret.

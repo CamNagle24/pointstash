@@ -15,12 +15,11 @@ export async function GET(req: NextRequest) {
     const offset = parseIntParam(url.searchParams.get("offset"), 0);
 
     if (accountId) {
-      const owned = await db.account.findUnique({
-        where: { id: accountId },
+      const owned = await db.account.findFirst({
+        where: { id: accountId, userId: guard.userId },
         select: { userId: true },
       });
       if (!owned) return errorJson("Account not found", 404);
-      if (owned.userId !== guard.userId) return errorJson("Forbidden", 403);
     }
 
     const where = {

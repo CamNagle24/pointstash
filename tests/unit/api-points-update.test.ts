@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-const { authMock, acctFindUniqueMock, acctUpdateMock, pointsCreateMock, transactionMock } =
+const { authMock, acctFindFirstMock, acctUpdateMock, pointsCreateMock, transactionMock } =
   vi.hoisted(() => ({
     authMock: vi.fn(),
-    acctFindUniqueMock: vi.fn(),
+    acctFindFirstMock: vi.fn(),
     acctUpdateMock: vi.fn(),
     pointsCreateMock: vi.fn(),
     transactionMock: vi.fn(),
@@ -12,7 +12,7 @@ const { authMock, acctFindUniqueMock, acctUpdateMock, pointsCreateMock, transact
 vi.mock("@/lib/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({
   db: {
-    account: { findUnique: acctFindUniqueMock, update: acctUpdateMock },
+    account: { findFirst: acctFindFirstMock, update: acctUpdateMock },
     pointsHistory: { create: pointsCreateMock },
     $transaction: transactionMock,
   },
@@ -33,7 +33,7 @@ function req(body: unknown) {
 
 beforeEach(() => {
   authMock.mockReset().mockResolvedValue(signedIn);
-  acctFindUniqueMock.mockReset();
+  acctFindFirstMock.mockReset();
   acctUpdateMock.mockReset().mockResolvedValue({ id: "acct_1", currentPoints: 250 });
   pointsCreateMock.mockReset().mockResolvedValue({});
   transactionMock.mockReset().mockImplementation(async (fn) => fn(tx));
@@ -52,19 +52,23 @@ describe("POST /api/points/update", () => {
   });
 
   it("404s a missing account", async () => {
-    acctFindUniqueMock.mockResolvedValue(null);
+    acctFindFirstMock.mockResolvedValue(null);
     expect((await POST(req(body))).status).toBe(404);
   });
 
-  it("403s an account owned by someone else", async () => {
-    acctFindUniqueMock.mockResolvedValue({ id: "acct_1", userId: "other", currentPoints: 100 });
+  it("404s (not 403) an account owned by someone else — no existence disclosure", async () => {
+    // findFirst scopes by { id, userId } so another user's account resolves to null.
+    acctFindFirstMock.mockResolvedValue(null);
     const res = await POST(req(body));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
+    expect(acctFindFirstMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "acct_1", userId: "user_1" } }),
+    );
     expect(transactionMock).not.toHaveBeenCalled();
   });
 
   it("writes a history row and updates the balance", async () => {
-    acctFindUniqueMock.mockResolvedValue({ id: "acct_1", userId: "user_1", currentPoints: 100 });
+    acctFindFirstMock.mockResolvedValue({ id: "acct_1", userId: "user_1", currentPoints: 100 });
     const res = await POST(req(body));
     expect(res.status).toBe(200);
     expect(pointsCreateMock).toHaveBeenCalledWith(

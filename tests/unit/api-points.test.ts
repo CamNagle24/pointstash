@@ -1,18 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-const { authMock, acctFindManyMock, acctFindUniqueMock, historyFindManyMock, historyCountMock } =
-  vi.hoisted(() => ({
-    authMock: vi.fn(),
-    acctFindManyMock: vi.fn(),
-    acctFindUniqueMock: vi.fn(),
-    historyFindManyMock: vi.fn(),
-    historyCountMock: vi.fn(),
-  }));
+const {
+  authMock,
+  acctFindManyMock,
+  acctFindUniqueMock,
+  acctFindFirstMock,
+  historyFindManyMock,
+  historyCountMock,
+} = vi.hoisted(() => ({
+  authMock: vi.fn(),
+  acctFindManyMock: vi.fn(),
+  acctFindUniqueMock: vi.fn(),
+  acctFindFirstMock: vi.fn(),
+  historyFindManyMock: vi.fn(),
+  historyCountMock: vi.fn(),
+}));
 vi.mock("@/lib/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({
   db: {
-    account: { findMany: acctFindManyMock, findUnique: acctFindUniqueMock },
+    account: {
+      findMany: acctFindManyMock,
+      findUnique: acctFindUniqueMock,
+      findFirst: acctFindFirstMock,
+    },
     pointsHistory: { findMany: historyFindManyMock, count: historyCountMock },
   },
 }));
@@ -27,6 +38,7 @@ beforeEach(() => {
   authMock.mockReset().mockResolvedValue(signedIn);
   acctFindManyMock.mockReset().mockResolvedValue([]);
   acctFindUniqueMock.mockReset();
+  acctFindFirstMock.mockReset();
   historyFindManyMock.mockReset().mockResolvedValue([]);
   historyCountMock.mockReset().mockResolvedValue(0);
 });
@@ -84,19 +96,28 @@ describe("GET /api/points/history", () => {
   });
 
   it("404s an unknown accountId filter", async () => {
-    acctFindUniqueMock.mockResolvedValue(null);
+    acctFindFirstMock.mockResolvedValue(null);
     expect((await history(historyReq("?accountId=nope"))).status).toBe(404);
   });
 
-  it("403s an accountId owned by someone else", async () => {
-    acctFindUniqueMock.mockResolvedValue({ userId: "other" });
+  it("404s (not 403) an accountId belonging to another user — no existence disclosure", async () => {
+    // findFirst scopes by { id, userId } so another user's account returns null.
+    acctFindFirstMock.mockResolvedValue(null);
     const res = await history(historyReq("?accountId=a1"));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
     expect(historyFindManyMock).not.toHaveBeenCalled();
   });
 
+  it("scopes the account lookup to the authenticated user", async () => {
+    acctFindFirstMock.mockResolvedValue(null);
+    await history(historyReq("?accountId=a1"));
+    expect(acctFindFirstMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user_1", id: "a1" }) }),
+    );
+  });
+
   it("scopes history to the caller (and account when given)", async () => {
-    acctFindUniqueMock.mockResolvedValue({ userId: "user_1" });
+    acctFindFirstMock.mockResolvedValue({ userId: "user_1" });
     historyFindManyMock.mockResolvedValue([{ id: "h1" }]);
     historyCountMock.mockResolvedValue(1);
     const res = await history(historyReq("?accountId=a1"));

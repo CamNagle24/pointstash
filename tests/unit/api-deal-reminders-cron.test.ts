@@ -129,4 +129,46 @@ describe("GET /api/cron/deal-reminders", () => {
     const body = await (await GET(cronReq())).json();
     expect(body).toMatchObject({ sent: 1, logged: 0 });
   });
+
+  it("returns zero stats when there are no opted-in users", async () => {
+    userFindManyMock.mockResolvedValue([]);
+    dealFindManyMock.mockResolvedValue([]);
+
+    const res = await GET(cronReq());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: true, candidates: 0, sent: 0, logged: 0, errors: [] });
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("captures a per-user email error in errors[] without aborting the batch", async () => {
+    userFindManyMock.mockResolvedValue([
+      { id: "u1", email: "u1@example.com", name: "U1", accounts: [{ chain: { slug: "wendys" } }] },
+      { id: "u2", email: "u2@example.com", name: "U2", accounts: [{ chain: { slug: "wendys" } }] },
+    ]);
+    dealFindManyMock.mockResolvedValue([
+      {
+        id: "deal_1",
+        userId: null,
+        title: "Free Fries",
+        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        redeemUrl: null,
+        anchorText: null,
+        sourceUrl: null,
+        chain: { slug: "wendys", name: "Wendy's" },
+      },
+    ]);
+    // u1 fails, u2 succeeds.
+    sendEmailMock.mockRejectedValueOnce(new Error("SMTP timeout")).mockResolvedValueOnce("sent");
+
+    const res = await GET(cronReq());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.errors).toHaveLength(1);
+    expect(body.errors[0]).toContain("u1@example.com");
+    expect(body.sent).toBe(1);
+    // u2 was still emailed despite u1's failure.
+    expect(sendEmailMock).toHaveBeenCalledTimes(2);
+  });
 });

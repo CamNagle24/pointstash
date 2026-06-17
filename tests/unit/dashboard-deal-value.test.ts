@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   estimatedDealValueCents,
+  totalEstimatedDollars,
   isAlmostAffordable,
   ALMOST_AFFORDABLE_THRESHOLD,
 } from "@/lib/dashboard";
 import type { RedemptionOption } from "@/types/redemption";
+import type { ChainAccount } from "@/types/account";
 
 function redemption(over: Partial<RedemptionOption>): RedemptionOption {
   return {
@@ -40,6 +42,60 @@ describe("estimatedDealValueCents", () => {
 
   it("returns null when the chain has no redemptions to price against", () => {
     expect(estimatedDealValueCents("c2", 100, [redemption({ chainId: "c1" })])).toBeNull();
+  });
+});
+
+function account(chainId: string, currentPoints: number): ChainAccount {
+  return {
+    id: "a1",
+    userId: "u1",
+    chainId,
+    loyaltyId: null,
+    currentPoints,
+    lastSynced: null,
+    syncMethod: "MANUAL",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    chain: { id: chainId, slug: chainId, name: chainId, logo: "", color: "", pointsName: "pts" },
+  };
+}
+
+describe("totalEstimatedDollars", () => {
+  it("sums multiple accounts using each chain's best rate", () => {
+    const accounts = [account("c1", 1000), account("c2", 500)];
+    const redemptions = [
+      redemption({ chainId: "c1", centsPerPoint: 1.0 }),
+      redemption({ chainId: "c2", centsPerPoint: 2.0 }),
+    ];
+    // c1: 1000 × 1.0¢ / 100 = $10; c2: 500 × 2.0¢ / 100 = $10; total = $20
+    expect(totalEstimatedDollars(accounts, redemptions)).toBeCloseTo(20);
+  });
+
+  it("a zero-balance account contributes 0", () => {
+    const accounts = [account("c1", 0)];
+    const redemptions = [redemption({ chainId: "c1", centsPerPoint: 1.5 })];
+    expect(totalEstimatedDollars(accounts, redemptions)).toBe(0);
+  });
+
+  it("an account for a chain with no redemption contributes 0", () => {
+    const accounts = [account("c3", 500)];
+    const redemptions = [redemption({ chainId: "c1", centsPerPoint: 1.5 })];
+    expect(totalEstimatedDollars(accounts, redemptions)).toBe(0);
+  });
+
+  it("returns 0 for an empty accounts list", () => {
+    expect(totalEstimatedDollars([], [redemption({ chainId: "c1" })])).toBe(0);
+  });
+
+  it("picks the highest rate when a chain has multiple redemptions", () => {
+    const accounts = [account("c1", 100)];
+    const redemptions = [
+      redemption({ chainId: "c1", centsPerPoint: 1.0 }),
+      redemption({ chainId: "c1", centsPerPoint: 3.0 }),
+    ];
+    // best rate 3.0¢, 100 × 3.0 / 100 = $3
+    expect(totalEstimatedDollars(accounts, redemptions)).toBeCloseTo(3);
   });
 });
 

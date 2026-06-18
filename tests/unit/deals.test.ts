@@ -1,12 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ScrapedDeal } from "@/types/deal";
 
-const { updateManyMock } = vi.hoisted(() => ({ updateManyMock: vi.fn() }));
+const { updateManyMock, deleteManyMock, createManyMock, transactionMock } = vi.hoisted(() => ({
+  updateManyMock: vi.fn(),
+  deleteManyMock: vi.fn(),
+  createManyMock: vi.fn(),
+  transactionMock: vi.fn(),
+}));
 vi.mock("@/lib/db", () => ({
-  db: { deal: { updateMany: updateManyMock } },
+  db: {
+    deal: { updateMany: updateManyMock, deleteMany: deleteManyMock, createMany: createManyMock },
+    $transaction: transactionMock,
+  },
 }));
 
-import { mapScrapedDeal, deactivateExpiredDeals } from "@/lib/deals";
+import { mapScrapedDeal, deactivateExpiredDeals, replaceAutoDeals } from "@/lib/deals";
 
 function scrapedDeal(over: Partial<ScrapedDeal> = {}): ScrapedDeal {
   return {
@@ -84,5 +92,41 @@ describe("deactivateExpiredDeals", () => {
   it("returns 0 when nothing is expired", async () => {
     updateManyMock.mockResolvedValue({ count: 0 });
     expect(await deactivateExpiredDeals(new Date())).toBe(0);
+  });
+});
+
+describe("replaceAutoDeals", () => {
+  beforeEach(() => {
+    deleteManyMock.mockReset();
+    createManyMock.mockReset();
+    transactionMock.mockReset();
+    transactionMock.mockImplementation(async (ops: unknown[]) => Promise.all(ops));
+  });
+
+  it("runs deleteMany then createMany in a single transaction, scoped to auto sources", async () => {
+    const deals = [scrapedDeal({ title: "Deal A" }), scrapedDeal({ title: "Deal B" })];
+
+    const result = await replaceAutoDeals("chain_1", deals);
+
+    expect(transactionMock).toHaveBeenCalledTimes(1);
+    const ops = transactionMock.mock.calls[0][0];
+    expect(ops).toHaveLength(2);
+    expect(deleteManyMock).toHaveBeenCalledWith({
+      where: { chainId: "chain_1", source: { in: ["LLM", "AGGREGATOR"] } },
+    });
+    expect(createManyMock).toHaveBeenCalledWith({
+      data: deals.map((d) => mapScrapedDeal(d, "chain_1")),
+    });
+    expect(result).toBe(2);
+  });
+
+  it("clears existing auto deals even when there are zero scraped deals", async () => {
+    const result = await replaceAutoDeals("chain_1", []);
+
+    expect(deleteManyMock).toHaveBeenCalledWith({
+      where: { chainId: "chain_1", source: { in: ["LLM", "AGGREGATOR"] } },
+    });
+    expect(createManyMock).toHaveBeenCalledWith({ data: [] });
+    expect(result).toBe(0);
   });
 });

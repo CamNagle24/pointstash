@@ -25,11 +25,10 @@ export async function POST(req: NextRequest) {
       return errorJson("Invalid input", 400, parsed.error.flatten());
     }
 
-    const account = await db.account.findUnique({
-      where: { id: parsed.data.accountId },
+    const account = await db.account.findFirst({
+      where: { id: parsed.data.accountId, userId: guard.userId },
     });
     if (!account) return errorJson("Account not found", 404);
-    if (account.userId !== guard.userId) return errorJson("Forbidden", 403);
 
     const updated = await db.$transaction(async (tx) => {
       await tx.pointsHistory.create({

@@ -5,19 +5,11 @@ import {
   hasImplementedConnector,
   NotImplementedError,
 } from "@/lib/connectors";
+import { CHAINS } from "@/lib/constants";
 
-const KNOWN_SLUGS = [
-  "mcdonalds",
-  "chickfila",
-  "wendys",
-  "tacobell",
-  "burgerking",
-  "popeyes",
-  "subway",
-  "dunkin",
-  "starbucks",
-  "chipotle",
-] as const;
+// Drive expected slugs from CHAINS itself so this test catches any future
+// chain that's added to the catalog without a matching connector entry.
+const KNOWN_SLUGS = Object.keys(CHAINS) as (keyof typeof CHAINS)[];
 
 describe("getConnector", () => {
   it.each(KNOWN_SLUGS)("returns the connector for '%s'", (slug) => {

@@ -125,6 +125,17 @@ npm run dev
 
 See `docker-compose.yml` for service details. To run the whole app in containers: `docker compose up`.
 
+## Pre-commit hook
+
+`npm install` wires up a Husky pre-commit hook (`.husky/pre-commit`) that runs on every
+commit:
+
+1. `lint-staged` runs `eslint --fix` on staged `.js`/`.jsx`/`.ts`/`.tsx` files only.
+2. `npm run typecheck` runs the full project typecheck (`tsc` has no per-file mode that
+   respects the project's type graph, so this checks everything, not just staged files).
+
+A commit aborts if either step fails. To skip in an emergency: `git commit --no-verify`.
+
 ## Troubleshooting
 
 - **Prisma `P1001 Can't reach database server`** → using the direct host on Supabase free tier. Switch `DIRECT_URL` to the session pooler (port `5432`, `aws-1-<region>.pooler.supabase.com`).

@@ -157,6 +157,46 @@ export const handlers = [
     return HttpResponse.json(accounts[idx]);
   }),
 
+  http.post("/api/accounts/:id/redeem", async ({ params, request }) => {
+    const body = (await request.json()) as { redemptionOptionId?: string };
+    if (!body?.redemptionOptionId) {
+      return HttpResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
+    const accountIdx = accounts.findIndex((a) => a.id === params.id);
+    if (accountIdx < 0) return HttpResponse.json({ error: "Account not found" }, { status: 404 });
+    const account = accounts[accountIdx];
+
+    const option = redemptions.find((r) => r.id === body.redemptionOptionId);
+    if (!option || option.chainSlug !== account.chainSlug) {
+      return HttpResponse.json(
+        { error: "Redemption option not found for this account's chain" },
+        { status: 400 },
+      );
+    }
+    if (account.currentPoints < option.pointsCost) {
+      return HttpResponse.json({ error: "Not enough points to redeem this option" }, { status: 400 });
+    }
+
+    const previous = account.currentPoints;
+    const newPoints = previous - option.pointsCost;
+    accounts[accountIdx] = {
+      ...account,
+      currentPoints: newPoints,
+      lastSynced: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const pointsHistoryRow = {
+      id: `ph_${Date.now()}`,
+      accountId: account.id,
+      previousPoints: previous,
+      newPoints,
+      changeReason: "REDEMPTION",
+      occurredAt: new Date().toISOString(),
+    };
+    pointsHistory.push(pointsHistoryRow);
+    return HttpResponse.json({ account: accounts[accountIdx], pointsHistory: pointsHistoryRow });
+  }),
+
   http.get("/api/points/history", ({ request }) => {
     const url = new URL(request.url);
     const accountId = url.searchParams.get("accountId");

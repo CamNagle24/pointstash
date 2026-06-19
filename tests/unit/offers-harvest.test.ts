@@ -27,7 +27,6 @@ let listener: Listener | null = null;
 let chromeMock: { runtime: { id: string | undefined; onMessage: { addListener: (fn: Listener) => void } } };
 
 function runScript() {
-  // eslint-disable-next-line no-new-func
   new Function(SCRIPT)();
 }
 

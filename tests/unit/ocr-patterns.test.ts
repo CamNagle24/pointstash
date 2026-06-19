@@ -122,4 +122,20 @@ describe("extractPointsFromText", () => {
     const result = extractPointsFromText("999,999,999 points", "wendys");
     expect(result.extractedPoints).toBe(999999999);
   });
+
+  it.each([
+    ["chipotle", "Chipotle Rewards: 1,300 points"],
+    ["pancheros", "Pancheros Rewards balance: 480 points"],
+    ["dairyqueen", "DQ Rewards — 920 points"],
+    ["culvers", "Culver's Rewards: 650 points"],
+    ["jimmyjohns", "Freaky Fast Rewards: 1,050 points"],
+    ["buffalowildwings", "Blazin' Rewards balance: 2,200 points"],
+    ["kfc", "KFC Rewards: 740 points"],
+    ["pandaexpress", "Panda Rewards: 1,890 points"],
+  ])("extracts %s points with high confidence", (slug, text) => {
+    const result = extractPointsFromText(text, slug);
+    expect(result.extractedPoints).not.toBeNull();
+    expect(result.confidence).toBe("high");
+    expect(result.matchedPattern).toBe("chain");
+  });
 });

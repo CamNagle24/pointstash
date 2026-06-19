@@ -12,7 +12,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [ ] Playwright E2E for the redeem flow — sign in (seeded/MSW), view a deal, complete a redeem, see the balance update.
   > blocked: the "Mark as Redeemed" UI affordance is implemented and awaiting review in `routine/redeem-ui-affordance` (PR open) — once that merges to main, this E2E can drive `RedemptionTable`'s confirm dialog end to end.
 - [ ] Playwright E2E for the OCR screenshot upload flow — on `/dashboard/accounts`, upload a fixture screenshot via `AddAccountModal`'s screenshot method, confirm the OCR-extracted point total pre-fills the balance field, and saving updates the account's displayed balance.
-- [ ] DX: add a Husky + lint-staged pre-commit hook — run `npm run lint` and `npm run typecheck` (or an eslint/tsc subset) on staged files before commit; document setup in `docs/DEPLOYMENT.md` or a new `docs/DX.md`.
 - [ ] Unit test for `isExtensionConfigured` in `src/lib/extension-bridge.ts` — `chainHasExtensionSupport`/`EXTENSION_SUPPORTED_CHAINS` are already covered in `tests/unit/extension-auth-unit.test.ts`, but `isExtensionConfigured` (returns false when `NEXT_PUBLIC_EXTENSION_ID` is unset, true when set) has no test; add one to that file or a new `tests/unit/extension-bridge-lib.test.ts`.
 - [ ] Unit tests for `replaceAutoDeals` in `src/lib/deals.ts` — mock db, verify `$transaction` receives `[deleteMany(chainId, AUTO_SOURCES), createMany(rows)]` in that order; zero scraped deals still clears existing auto deals; return value equals the number of deals passed in; extend `tests/unit/deals.test.ts`.
 - [ ] Unit tests for `sendResetEmail` in `src/lib/reset-tokens.ts` — mock Resend; in non-production with `RESEND_API_KEY` unset, the function logs the reset link and returns (no throw); in production with no key, it throws `"RESEND_API_KEY is not configured"`; Resend send returning `{ error }` throws with the error message; happy path calls Resend with correct `to`, `from`, `subject`, and `html`/`text` containing the reset link.
@@ -26,15 +25,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 ## Done
 <!-- routine PRs move completed items here -->
 
-- [x] Wire a "Mark as Redeemed" UI affordance to `POST /api/accounts/[id]/redeem` — `RedemptionTable` gained an "Action" column with a "Mark redeemed" button (disabled when the chain has no linked account or the balance can't cover `pointsCost`), opening a confirmation `Dialog` showing the item, points cost, and resulting balance; on confirm it posts to the redeem route and invalidates `useAccounts`/`usePoints` via `RedeemPage`'s `onRedeemed` callback; covered in `tests/unit/redemption-table-redeem.test.tsx`.
-- [x] Architect: design a redemption-completion flow — recorded in `docs/DECISIONS.md` (2026-06-16): no new Prisma migration needed; `POST /api/accounts/[id]/redeem` route shape; UI affordance plan for `RedeemPage`/`RedemptionTable`.
-- [x] Accessibility pass on icon-only dashboard buttons — `aria-label`s added across `ChainAccountCard`, `MobileNav`, and `Sidebar`; regression coverage in `tests/unit/icon-button-accessibility.test.tsx`.
-- [x] Implement `POST /api/accounts/[id]/redeem` — atomic points deduction + `PointsHistory` row with `changeReason: "REDEMPTION"`; ownership/chain/sufficient-points guards covered in `tests/unit/api-accounts-redeem.test.ts`.
-- [x] Unit tests for `mapScrapedDeal` and `deactivateExpiredDeals` in `src/lib/deals.ts` — `tests/unit/deals.test.ts`.
-- [x] Unit tests for `hashResetToken`, `mintResetToken`, and `resetTokenExpiry` in `src/lib/reset-tokens.ts` — `tests/unit/reset-tokens-lib.test.ts`.
-- [x] Unit tests for `bestRedemptionFor` and `bestRedemptionLabel` in `src/lib/dashboard.ts` — `tests/unit/dashboard-best-redemption.test.ts`.
-- [x] Unit tests for `dealTypeLabel` and `discountTypeLabel` in `src/lib/formatters.ts` — `tests/unit/formatters.test.ts`.
-- [x] API integration tests for `PUT /api/points/update` — 401/404/cross-user-scoping/200 happy path in `tests/unit/api-points-update.test.ts`.
+- [x] DX: add a Husky + lint-staged pre-commit hook — `.husky/pre-commit` runs `lint-staged` (`eslint --fix` on staged `.js`/`.jsx`/`.ts`/`.tsx` files, with `ESLINT_USE_FLAT_CONFIG=false` so it resolves the project's existing `.eslintrc.json`) then the full `npm run typecheck`; documented in `docs/DEPLOYMENT.md`.
 - [x] Add CI workflow `.github/workflows/ci.yml` — `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run` on PRs to main; green on default branch.
 - [x] OCR edge-case tests in `src/lib/ocr.ts` — common OCR artifacts are corrected per chain; malformed input fails gracefully (no throw).
 - [x] API auth/cron guard tests — `requireAuth` rejects unauthenticated calls; `isCronRequest` only accepts the configured cron secret.

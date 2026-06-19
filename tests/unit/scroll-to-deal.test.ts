@@ -11,7 +11,6 @@ const SCRIPT = readFileSync(
 );
 
 function runScript() {
-  // eslint-disable-next-line no-new-func
   new Function(SCRIPT)();
 }
 

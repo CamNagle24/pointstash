@@ -27,10 +27,8 @@ export function MockProvider({ children }: { children: React.ReactNode }) {
           serviceWorker: { url: "/mockServiceWorker.js" },
         });
         if (!cancelled) setReady(true);
-        // eslint-disable-next-line no-console
         console.info("[msw] mock api active — set NEXT_PUBLIC_ENABLE_MSW=0 to disable");
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.warn("[msw] failed to start; continuing with real API", err);
         if (!cancelled) setReady(true);
       }

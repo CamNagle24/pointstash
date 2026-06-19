@@ -9,6 +9,13 @@ import { subwayConnector } from "./subway";
 import { dunkinConnector } from "./dunkin";
 import { starbucksConnector } from "./starbucks";
 import { chipotleConnector } from "./chipotle";
+import { pancherosConnector } from "./pancheros";
+import { dairyqueenConnector } from "./dairyqueen";
+import { culversConnector } from "./culvers";
+import { jimmyjohnsConnector } from "./jimmyjohns";
+import { buffalowildwingsConnector } from "./buffalowildwings";
+import { kfcConnector } from "./kfc";
+import { pandaexpressConnector } from "./pandaexpress";
 
 export const connectors: Record<string, BaseConnector> = {
   [mcdonaldsConnector.chainSlug]: mcdonaldsConnector,
@@ -21,6 +28,13 @@ export const connectors: Record<string, BaseConnector> = {
   [dunkinConnector.chainSlug]: dunkinConnector,
   [starbucksConnector.chainSlug]: starbucksConnector,
   [chipotleConnector.chainSlug]: chipotleConnector,
+  [pancherosConnector.chainSlug]: pancherosConnector,
+  [dairyqueenConnector.chainSlug]: dairyqueenConnector,
+  [culversConnector.chainSlug]: culversConnector,
+  [jimmyjohnsConnector.chainSlug]: jimmyjohnsConnector,
+  [buffalowildwingsConnector.chainSlug]: buffalowildwingsConnector,
+  [kfcConnector.chainSlug]: kfcConnector,
+  [pandaexpressConnector.chainSlug]: pandaexpressConnector,
 };
 
 export function getConnector(slug: string): BaseConnector | undefined {

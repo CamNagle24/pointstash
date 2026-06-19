@@ -7,6 +7,7 @@ import { Calculator, Lightbulb, TrendingUp, Loader2 } from "lucide-react";
 import { CHAIN_IDS, CHAINS } from "@/lib/constants";
 import type { ChainId } from "@/types/chain";
 import { useAccounts } from "@/hooks/useAccounts";
+import { usePoints } from "@/hooks/usePoints";
 import { useRedemptions } from "@/hooks/useRedemptions";
 import { ChainLogo } from "@/components/ui/ChainLogo";
 import { Card } from "@/components/ui/Card";
@@ -37,7 +38,8 @@ function RedeemPageContent() {
       ? (chainParam as ChainId)
       : "chickfila";
   const [selectedChain, setSelectedChain] = React.useState<ChainId>(initialChain);
-  const { accounts } = useAccounts();
+  const { accounts, mutate: mutateAccounts } = useAccounts();
+  const { mutate: mutatePoints } = usePoints();
   const { redemptions, isLoading } = useRedemptions();
 
   const chain = CHAINS[selectedChain];
@@ -171,7 +173,15 @@ function RedeemPageContent() {
             Loading redemptions…
           </div>
         ) : tableRows.length > 0 ? (
-          <RedemptionTable rows={tableRows} />
+          <RedemptionTable
+            rows={tableRows}
+            accountId={account?.id}
+            currentPoints={balance}
+            onRedeemed={() => {
+              mutateAccounts();
+              mutatePoints();
+            }}
+          />
         ) : (
           <p className="rounded-2xl border border-dashed border-[var(--border)] py-10 text-center text-sm text-[var(--text-secondary)]">
             No redemption data for this chain yet.

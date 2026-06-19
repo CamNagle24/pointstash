@@ -8,6 +8,14 @@ const POINTS_PATTERNS: Record<string, RegExp> = {
   subway: /(\d{1,3}(?:,\d{3})*|\d+)\s*token/i,
   dunkin: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
   starbucks: /(?:★\s*)?(\d{1,3}(?:,\d{3})*|\d+)\s*(?:★|star)/i,
+  chipotle: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
+  pancheros: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
+  dairyqueen: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
+  culvers: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
+  jimmyjohns: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
+  buffalowildwings: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
+  kfc: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
+  pandaexpress: /(\d{1,3}(?:,\d{3})*|\d+)\s*point/i,
 };
 
 const FALLBACK = /(\d{1,3}(?:,\d{3})*|\d{2,})\s*(?:point|pt|star|crown|token|★)/i;

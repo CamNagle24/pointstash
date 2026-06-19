@@ -13,6 +13,7 @@ import { popeyesScraper } from "./popeyes";
 import { subwayScraper } from "./subway";
 import { dunkinScraper } from "./dunkin";
 import { starbucksScraper } from "./starbucks";
+import { chipotleScraper } from "./chipotle";
 
 const PER_CHAIN_TIMEOUT_MS = 30_000;
 const FETCH_TIMEOUT_MS = 20_000;
@@ -28,6 +29,7 @@ export const scrapers: Record<string, ChainScraper> = {
   [subwayScraper.chainSlug]: subwayScraper,
   [dunkinScraper.chainSlug]: dunkinScraper,
   [starbucksScraper.chainSlug]: starbucksScraper,
+  [chipotleScraper.chainSlug]: chipotleScraper,
 };
 
 export type ScrapeOutcome =

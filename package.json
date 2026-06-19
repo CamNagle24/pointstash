@@ -21,7 +21,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "scrape": "tsx src/lib/scrapers/index.ts",
-    "msw:init": "msw init public/ --save"
+    "msw:init": "msw init public/ --save",
+    "prepare": "husky",
+    "lint:staged": "ESLINT_USE_FLAT_CONFIG=false eslint --fix"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
@@ -71,7 +73,9 @@
     "dotenv-cli": "^11.0.0",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.0",
+    "husky": "^9.1.7",
     "jsdom": "^25.0.1",
+    "lint-staged": "^17.0.7",
     "msw": "^2.7.0",
     "postcss": "^8.4.49",
     "prisma": "^6.1.0",
@@ -82,5 +86,8 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": "npm run lint:staged --"
   }
 }

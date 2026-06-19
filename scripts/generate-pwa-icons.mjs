@@ -23,7 +23,6 @@ const baseSvg = (size, { safeZone = 1, rounded = true } = {}) => {
   // safeZone of 1 = full-bleed; 0.8 = maskable (content inset to inner 80%).
   const inset = ((1 - safeZone) / 2) * size;
   const contentSize = size * safeZone;
-  const cx = size / 2;
   const r = size * 0.18; // corner radius
 
   // Coin geometry (drawn in a 100x100 viewBox, then translated/scaled).

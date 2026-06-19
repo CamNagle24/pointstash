@@ -6,10 +6,12 @@
  * them at the JS-rendered deal SPAs (mcdonalds.com/deals etc.): those ship no
  * offer text in static HTML, so there's nothing for the LLM to read.
  *
- * Chains with an entry here get the LLM extraction path in scrapeChain(). The 8
- * chains that have no bespoke Cheerio scraper (chipotle, pancheros, dairyqueen,
- * culvers, jimmyjohns, buffalowildwings, kfc, pandaexpress) are wired purely
- * through this config — no scraper class needed.
+ * Chains with an entry here get the LLM extraction path in scrapeChain(), which
+ * is tried first when ANTHROPIC_API_KEY is set. The 7 chains that have no
+ * bespoke Cheerio scraper (pancheros, dairyqueen, culvers, jimmyjohns,
+ * buffalowildwings, kfc, pandaexpress) are wired purely through this config —
+ * no scraper class needed. chipotle has both: the LLM path when configured,
+ * falling back to src/lib/scrapers/chipotle.ts otherwise.
  */
 export type DealSourceType = "html" | "rss";
 

@@ -10,6 +10,7 @@ const {
   prtCreateMock,
   prtFindUniqueMock,
   prtUpdateMock,
+  prtCountMock,
   userUpdateMock,
   transactionMock,
   sendResetEmailMock,
@@ -19,6 +20,7 @@ const {
   prtCreateMock: vi.fn(),
   prtFindUniqueMock: vi.fn(),
   prtUpdateMock: vi.fn(),
+  prtCountMock: vi.fn(),
   userUpdateMock: vi.fn(),
   transactionMock: vi.fn(),
   sendResetEmailMock: vi.fn(),
@@ -38,6 +40,7 @@ vi.mock("@/lib/db", () => ({
       create: prtCreateMock,
       findUnique: prtFindUniqueMock,
       update: prtUpdateMock,
+      count: prtCountMock,
     },
     $transaction: transactionMock,
   },
@@ -61,6 +64,7 @@ beforeEach(() => {
   prtUpdateManyMock.mockReset().mockResolvedValue({ count: 0 });
   prtCreateMock.mockReset().mockResolvedValue({});
   prtFindUniqueMock.mockReset();
+  prtCountMock.mockReset().mockResolvedValue(0);
   prtUpdateMock.mockReset().mockReturnValue({ __op: "upd" });
   userUpdateMock.mockReset().mockReturnValue({ __op: "user" });
   transactionMock.mockReset().mockResolvedValue([]);
@@ -104,6 +108,38 @@ describe("POST /api/auth/forgot-password", () => {
     userFindUniqueMock.mockResolvedValue({ id: "u1", email: "a@x.com", name: "A", password: "hash" });
     sendResetEmailMock.mockRejectedValue(new Error("smtp down"));
     expect((await forgot(forgotReq({ email: "a@x.com" }))).status).toBe(200);
+  });
+
+  it("200s without minting/sending once the hourly cap is hit", async () => {
+    userFindUniqueMock.mockResolvedValue({ id: "u1", email: "a@x.com", name: "A", password: "hash" });
+    prtCountMock.mockResolvedValue(3);
+    const res = await forgot(forgotReq({ email: "a@x.com" }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(prtCreateMock).not.toHaveBeenCalled();
+    expect(sendResetEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("scopes the rate-limit count to the requesting user and a 1h window", async () => {
+    userFindUniqueMock.mockResolvedValue({ id: "u1", email: "a@x.com", name: "A", password: "hash" });
+    await forgot(forgotReq({ email: "a@x.com" }));
+    expect(prtCountMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: "u1",
+          createdAt: expect.objectContaining({ gt: expect.any(Date) }),
+        }),
+      }),
+    );
+  });
+
+  it("still mints/sends just under the cap", async () => {
+    userFindUniqueMock.mockResolvedValue({ id: "u1", email: "a@x.com", name: "A", password: "hash" });
+    prtCountMock.mockResolvedValue(2);
+    const res = await forgot(forgotReq({ email: "a@x.com" }));
+    expect(res.status).toBe(200);
+    expect(prtCreateMock).toHaveBeenCalled();
+    expect(sendResetEmailMock).toHaveBeenCalled();
   });
 });
 

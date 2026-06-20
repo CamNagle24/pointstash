@@ -93,6 +93,14 @@ model DealReminder {
   @@index([userId])
 }
 
+model SignupAttempt {
+  id          String    @id @default(cuid())
+  ipHash      String
+  createdAt   DateTime  @default(now())
+
+  @@index([ipHash, createdAt])
+}
+
 model PasswordResetToken {
   id          String    @id @default(cuid())
   userId      String

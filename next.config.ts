@@ -17,7 +17,11 @@ const nextConfig: NextConfig = {
   // .next. Defaults to the standard .next.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
+    // Only Google OAuth profile photos (`user.image`) are a legitimate
+    // remote image source today. A wildcard hostname here turns Next's
+    // built-in `/_next/image` optimizer into an open SSRF-capable proxy
+    // that will fetch any attacker-supplied https URL server-side.
+    remotePatterns: [{ protocol: "https", hostname: "lh3.googleusercontent.com" }],
   },
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },

@@ -42,6 +42,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 ## Done
 <!-- routine PRs move completed items here -->
 
+- [x] Security: restrict `next.config.ts`'s `images.remotePatterns` from a wildcard `hostname: "**"` to the only legitimate remote image source (`lh3.googleusercontent.com`, used by Google OAuth profile photos) — the wildcard turned Next's built-in `/_next/image` optimizer into an open SSRF-capable proxy with no app code actually relying on it (chain logos are local SVGs; OCR screenshots are local blob URLs); regression test in `tests/unit/next-config-images.test.ts` asserts no wildcard hostname is configured. Found and fixed in the same run (not pre-queued) since the Queue's other items were all already covered by open PRs or blocked.
 - [x] Unit tests for `replaceAutoDeals` in `src/lib/deals.ts` — mocks `db.deal.deleteMany`/`createMany`/`$transaction` in `tests/unit/deals.test.ts`; asserts the chain/auto-source scoping, `deleteMany` runs before `createMany`, zero deals still clears existing auto deals, and the return value equals the row count.
 - [x] Add CI workflow `.github/workflows/ci.yml` — `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run` on PRs to main; green on default branch.
 - [x] OCR edge-case tests in `src/lib/ocr.ts` — common OCR artifacts are corrected per chain; malformed input fails gracefully (no throw).

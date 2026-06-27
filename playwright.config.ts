@@ -30,5 +30,8 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    // Drives the dev server off the MSW fixtures (tests/mocks) instead of a
+    // real Postgres connection — see docs/PROJECT.md's "UI without a DB".
+    env: { NEXT_PUBLIC_ENABLE_MSW: "1" },
   },
 });

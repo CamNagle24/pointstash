@@ -265,7 +265,12 @@ export const handlers = [
     const result = chain
       ? redemptions.filter((r) => r.chainSlug === chain)
       : redemptions;
-    const sorted = [...result].sort((a, b) => b.centsPerPoint - a.centsPerPoint);
+    // Mirrors the real route's `include: { chain: chainSelect() }` — clients
+    // (e.g. the redeem page) filter on `r.chain?.slug`, not the flat
+    // `chainSlug` the fixture stores.
+    const sorted = [...result]
+      .sort((a, b) => b.centsPerPoint - a.centsPerPoint)
+      .map((r) => ({ ...r, chain: findChain(r.chainSlug) }));
     return HttpResponse.json({ redemptions: sorted });
   }),
 

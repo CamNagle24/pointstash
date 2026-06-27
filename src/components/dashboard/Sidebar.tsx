@@ -101,6 +101,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onCloseMobile }: SidebarP
               key={href}
               href={href}
               onClick={onCloseMobile}
+              aria-current={active ? "page" : undefined}
               className={cn(
                 "group relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
                 active

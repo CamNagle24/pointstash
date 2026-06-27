@@ -1,20 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ScrapedDeal } from "@/types/deal";
 
-const { updateManyMock, deleteManyMock, createManyMock, transactionMock } = vi.hoisted(() => ({
-  updateManyMock: vi.fn(),
-  deleteManyMock: vi.fn(),
-  createManyMock: vi.fn(),
-  transactionMock: vi.fn(),
-}));
+const { updateManyMock, deleteManyMock, createManyMock, transactionMock, scrapeChainMock } =
+  vi.hoisted(() => ({
+    updateManyMock: vi.fn(),
+    deleteManyMock: vi.fn(),
+    createManyMock: vi.fn(),
+    transactionMock: vi.fn(),
+    scrapeChainMock: vi.fn(),
+  }));
 vi.mock("@/lib/db", () => ({
   db: {
     deal: { updateMany: updateManyMock, deleteMany: deleteManyMock, createMany: createManyMock },
     $transaction: transactionMock,
   },
 }));
+vi.mock("@/lib/scrapers", () => ({ scrapeChain: scrapeChainMock }));
 
-import { mapScrapedDeal, deactivateExpiredDeals, replaceAutoDeals } from "@/lib/deals";
+import {
+  mapScrapedDeal,
+  deactivateExpiredDeals,
+  replaceAutoDeals,
+  scanAndReplaceDeals,
+} from "@/lib/deals";
 
 function scrapedDeal(over: Partial<ScrapedDeal> = {}): ScrapedDeal {
   return {
@@ -133,5 +141,56 @@ describe("replaceAutoDeals", () => {
     const deals = [scrapedDeal(), scrapedDeal(), scrapedDeal()];
     const result = await replaceAutoDeals("chain_1", deals);
     expect(result).toBe(3);
+  });
+});
+
+describe("scanAndReplaceDeals", () => {
+  const chains = [
+    { id: "c1", slug: "wendys" },
+    { id: "c2", slug: "kfc" },
+  ];
+
+  beforeEach(() => {
+    scrapeChainMock.mockReset();
+    deleteManyMock.mockReset().mockResolvedValue({ count: 0 });
+    createManyMock.mockReset().mockResolvedValue({ count: 0 });
+    transactionMock.mockReset().mockImplementation(async (ops: unknown[]) => Promise.all(ops));
+  });
+
+  it("scrapes and replaces auto deals for every chain", async () => {
+    scrapeChainMock.mockResolvedValue({ ok: true, deals: [scrapedDeal(), scrapedDeal()] });
+
+    const result = await scanAndReplaceDeals(chains);
+
+    expect(result).toEqual({ chainsScanned: 2, dealsInserted: 4, errors: [] });
+    expect(deleteManyMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("records the error and skips a chain whose scrape fails, keeping the rest", async () => {
+    scrapeChainMock.mockImplementation(async (slug: string) =>
+      slug === "wendys" ? { ok: false, error: "timeout" } : { ok: true, deals: [scrapedDeal()] },
+    );
+
+    const result = await scanAndReplaceDeals(chains);
+
+    expect(result.chainsScanned).toBe(1); // only kfc
+    expect(result.errors).toEqual(["wendys: timeout"]);
+    // The failed chain's existing deals are left untouched (no replace call).
+    expect(deleteManyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("records the error and still scans the next chain when replaceAutoDeals throws", async () => {
+    scrapeChainMock.mockResolvedValue({ ok: true, deals: [scrapedDeal()] });
+    transactionMock
+      .mockRejectedValueOnce(new Error("db down"))
+      .mockImplementation(async (ops: unknown[]) => Promise.all(ops));
+
+    const result = await scanAndReplaceDeals(chains);
+
+    expect(result.chainsScanned).toBe(1); // only kfc
+    expect(result.dealsInserted).toBe(1);
+    expect(result.errors).toEqual(["wendys: db down"]);
+    // Both chains were still scraped — the failure didn't abort the loop.
+    expect(scrapeChainMock).toHaveBeenCalledTimes(2);
   });
 });

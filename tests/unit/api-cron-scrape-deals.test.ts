@@ -1,22 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// db + the scraping/deals side effects are mocked; the real isCronRequest guard
-// (from @/lib/api) runs against the request header. @/lib/auth is stubbed
-// because @/lib/api imports it transitively.
-const { chainFindManyMock, scrapeChainMock, replaceAutoDealsMock, deactivateMock } = vi.hoisted(
-  () => ({
-    chainFindManyMock: vi.fn(),
-    scrapeChainMock: vi.fn(),
-    replaceAutoDealsMock: vi.fn(),
-    deactivateMock: vi.fn(),
-  }),
-);
+// db + the scan/deactivate side effects are mocked; the real isCronRequest
+// guard (from @/lib/api) runs against the request header. @/lib/auth is
+// stubbed because @/lib/api imports it transitively. Per-chain isolation
+// (a failed scrape/replace not blocking other chains) is covered against
+// the real scanAndReplaceDeals in tests/unit/deals.test.ts; here we only
+// check that the route wires its result through correctly.
+const { chainFindManyMock, scanAndReplaceDealsMock, deactivateMock } = vi.hoisted(() => ({
+  chainFindManyMock: vi.fn(),
+  scanAndReplaceDealsMock: vi.fn(),
+  deactivateMock: vi.fn(),
+}));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: { chain: { findMany: chainFindManyMock } } }));
-vi.mock("@/lib/scrapers", () => ({ scrapeChain: scrapeChainMock }));
 vi.mock("@/lib/deals", () => ({
-  replaceAutoDeals: replaceAutoDealsMock,
+  scanAndReplaceDeals: scanAndReplaceDealsMock,
   deactivateExpiredDeals: deactivateMock,
 }));
 
@@ -32,8 +31,7 @@ function cronReq(authorized = true) {
 beforeEach(() => {
   process.env.CRON_SECRET = CRON_SECRET;
   chainFindManyMock.mockReset().mockResolvedValue([{ id: "c1", slug: "wendys" }, { id: "c2", slug: "kfc" }]);
-  scrapeChainMock.mockReset().mockResolvedValue({ ok: true, deals: [{}, {}] });
-  replaceAutoDealsMock.mockReset().mockResolvedValue(2);
+  scanAndReplaceDealsMock.mockReset().mockResolvedValue({ chainsScanned: 2, dealsInserted: 4, errors: [] });
   deactivateMock.mockReset().mockResolvedValue(3);
 });
 
@@ -49,19 +47,23 @@ describe("GET /api/cron/scrape-deals", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ ok: true, chainsScanned: 2, dealsInserted: 4, dealsDeactivated: 3, errors: [] });
-    expect(replaceAutoDealsMock).toHaveBeenCalledTimes(2);
+    expect(scanAndReplaceDealsMock).toHaveBeenCalledWith([
+      { id: "c1", slug: "wendys" },
+      { id: "c2", slug: "kfc" },
+    ]);
   });
 
-  it("records the error and skips a chain whose scrape fails, keeping the rest", async () => {
-    scrapeChainMock.mockImplementation(async (slug: string) =>
-      slug === "wendys" ? { ok: false, error: "timeout" } : { ok: true, deals: [{}] },
-    );
+  it("surfaces partial errors from scanAndReplaceDeals without failing the request", async () => {
+    scanAndReplaceDealsMock.mockResolvedValue({
+      chainsScanned: 1,
+      dealsInserted: 1,
+      errors: ["wendys: timeout"],
+    });
     const res = await GET(cronReq());
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.chainsScanned).toBe(1); // only kfc
+    expect(body.chainsScanned).toBe(1);
     expect(body.errors).toEqual(["wendys: timeout"]);
-    // The failed chain's existing deals are left untouched (no replace call).
-    expect(replaceAutoDealsMock).toHaveBeenCalledTimes(1);
   });
 
   it("500s when the job throws", async () => {

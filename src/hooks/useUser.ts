@@ -10,6 +10,7 @@ export type UserProfile = {
   notifyExpiring: boolean;
   notifyDeals: boolean;
   notifyDigest: boolean;
+  notifyAffordable: boolean;
   createdAt: string;
 };
 

@@ -10,9 +10,34 @@ type Account = (typeof accountsFixture)[number];
 type Deal = (typeof deals)[number];
 type Redemption = (typeof redemptionsFixture)[number];
 
+type UserRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  notifyExpiring: boolean;
+  notifyDeals: boolean;
+  notifyDigest: boolean;
+  notifyAffordable: boolean;
+  createdAt: string;
+};
+
+const seedUser: UserRow = {
+  id: "user_demo",
+  email: "you@stash.it",
+  name: "You",
+  image: null,
+  notifyExpiring: true,
+  notifyDeals: true,
+  notifyDigest: true,
+  notifyAffordable: true,
+  createdAt: "2024-01-01T00:00:00.000Z",
+};
+
 let accounts: Account[] = structuredClone(accountsFixture);
 let dealsList: Deal[] = structuredClone(deals);
 let redemptions: Redemption[] = structuredClone(redemptionsFixture);
+let user: UserRow = structuredClone(seedUser);
 let pointsHistory: Array<{
   id: string;
   accountId: string;
@@ -60,6 +85,7 @@ export function resetMockStore() {
   accounts = structuredClone(accountsFixture);
   dealsList = structuredClone(deals);
   redemptions = structuredClone(redemptionsFixture);
+  user = structuredClone(seedUser);
   pointsHistory = [];
 }
 
@@ -76,6 +102,17 @@ export const handlers = [
   http.get("/api/auth/session", () =>
     HttpResponse.json({ user: { id: "user_demo", name: "You", email: "you@stash.it" } }),
   ),
+
+  // ───────────────────────────────  user  ────────────────────────────
+  http.get("/api/user/me", () => HttpResponse.json(user)),
+
+  http.patch("/api/user/me", async ({ request }) => {
+    const body = (await request.json()) as Partial<UserRow>;
+    user = { ...user, ...body };
+    return HttpResponse.json(user);
+  }),
+
+  http.delete("/api/user/me", () => new HttpResponse(null, { status: 204 })),
 
   // ───────────────────────────── chains ─────────────────────────────
   http.get("/api/chains", () => HttpResponse.json({ chains })),
@@ -228,7 +265,12 @@ export const handlers = [
     const result = chain
       ? redemptions.filter((r) => r.chainSlug === chain)
       : redemptions;
-    const sorted = [...result].sort((a, b) => b.centsPerPoint - a.centsPerPoint);
+    // Mirrors the real route's `include: { chain: chainSelect() }` — clients
+    // (e.g. the redeem page) filter on `r.chain?.slug`, not the flat
+    // `chainSlug` the fixture stores.
+    const sorted = [...result]
+      .sort((a, b) => b.centsPerPoint - a.centsPerPoint)
+      .map((r) => ({ ...r, chain: findChain(r.chainSlug) }));
     return HttpResponse.json({ redemptions: sorted });
   }),
 

@@ -30,13 +30,19 @@ export async function POST(req: NextRequest) {
     if (!chain) return errorJson("Chain not found", 404);
 
     const original = Buffer.from(await file.arrayBuffer());
-    const processed = await sharp(original)
-      .rotate()
-      .resize({ width: 1400, withoutEnlargement: true })
-      .grayscale()
-      .normalize()
-      .webp({ quality: 85 })
-      .toBuffer();
+    let processed: Buffer;
+    try {
+      processed = await sharp(original)
+        .rotate()
+        .resize({ width: 1400, withoutEnlargement: true })
+        .grayscale()
+        .normalize()
+        .webp({ quality: 85 })
+        .toBuffer();
+    } catch (err) {
+      console.error("[POST /api/upload] sharp decode failed", err);
+      return errorJson("Invalid image data", 400);
+    }
 
     const { createWorker } = await import("tesseract.js");
     const worker = await createWorker("eng");

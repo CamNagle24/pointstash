@@ -55,17 +55,18 @@ enum RedemptionCategory {
 }
 
 model User {
-  id               String   @id @default(cuid())
-  email            String   @unique
+  id               String    @id @default(cuid())
+  email            String    @unique
+  emailVerified    DateTime?
   name             String?
   password         String?
   image            String?
-  notifyExpiring   Boolean  @default(true)
-  notifyDeals      Boolean  @default(true)
-  notifyDigest     Boolean  @default(true)
-  notifyAffordable Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  notifyExpiring   Boolean   @default(true)
+  notifyDeals      Boolean   @default(true)
+  notifyDigest     Boolean   @default(true)
+  notifyAffordable Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   accounts            Account[]
   pointsHistory       PointsHistory[]
@@ -96,9 +97,9 @@ model DealReminder {
 }
 
 model SignupAttempt {
-  id          String    @id @default(cuid())
-  ipHash      String
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(cuid())
+  ipHash    String
+  createdAt DateTime @default(now())
 
   @@index([ipHash, createdAt])
 }
@@ -111,14 +112,14 @@ model SignupAttempt {
 // (account, redemption option) pair — never re-armed if the balance dips
 // below cost and crosses again later.
 model AffordabilityAlert {
-  id                 String   @id @default(cuid())
+  id                 String           @id @default(cuid())
   accountId          String
   userId             String
   redemptionOptionId String
-  sentAt             DateTime @default(now())
-  account          Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  redemptionOption RedemptionOption @relation(fields: [redemptionOptionId], references: [id], onDelete: Cascade)
+  sentAt             DateTime         @default(now())
+  account            Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redemptionOption   RedemptionOption @relation(fields: [redemptionOptionId], references: [id], onDelete: Cascade)
 
   @@unique([accountId, redemptionOptionId])
   @@index([userId])

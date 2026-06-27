@@ -89,6 +89,16 @@ describe("PATCH /api/user/me", () => {
       expect.objectContaining({ where: { id: "user_1" }, data: { notifyExpiring: false } }),
     );
   });
+
+  it("updates notifyAffordable", async () => {
+    authMock.mockResolvedValue(signedIn);
+    updateMock.mockResolvedValue({ id: "user_1", notifyAffordable: false });
+    const res = await PATCH(patchReq({ notifyAffordable: false }));
+    expect(res.status).toBe(200);
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "user_1" }, data: { notifyAffordable: false } }),
+    );
+  });
 });
 
 describe("DELETE /api/user/me", () => {

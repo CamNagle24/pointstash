@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/dashboard", label: "Overview" },
@@ -14,6 +16,7 @@ const links = [
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <div className="md:hidden">
@@ -22,16 +25,23 @@ export function MobileNav() {
       </Button>
       {open && (
         <nav className="absolute right-0 top-14 w-56 rounded-md border bg-background p-2 shadow-lg">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
-            >
-              {l.label}
-            </Link>
-          ))}
+          {links.map((l) => {
+            const active = l.href === "/dashboard" ? pathname === "/dashboard" : pathname?.startsWith(l.href);
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "block rounded-md px-3 py-2 text-sm hover:bg-accent",
+                  active && "bg-accent font-medium",
+                )}
+              >
+                {l.label}
+              </Link>
+            );
+          })}
         </nav>
       )}
     </div>

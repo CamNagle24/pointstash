@@ -102,6 +102,16 @@ describe("POST /api/upload — guard & validation", () => {
     const res = await POST(uploadReq({ file: pngFile(), chainSlug: "nope" }));
     expect(res.status).toBe(404);
   });
+
+  it("400s a spoofed image (valid content-type, undecodable bytes)", async () => {
+    toBufferMock.mockRejectedValue(new Error("Input buffer contains unsupported image format"));
+    const res = await POST(uploadReq({ file: pngFile(), chainSlug: "wendys" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/invalid image/i);
+    // Never reaches OCR/blob storage for undecodable input.
+    expect(putMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/upload — OCR happy path", () => {

@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
@@ -74,4 +75,16 @@ export function parseIntParam(value: string | null, fallback: number, max?: numb
   const n = parseInt(value, 10);
   if (Number.isNaN(n) || n < 0) return fallback;
   return max !== undefined ? Math.min(n, max) : n;
+}
+
+/** Client IP from the standard proxy header, taking the original caller (first entry). */
+export function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
+
+/** Hash an IP before persisting it, mirroring the token-hashing pattern in reset-tokens.ts. */
+export function hashClientIp(ip: string): string {
+  return crypto.createHash("sha256").update(ip).digest("hex");
 }

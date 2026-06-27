@@ -95,6 +95,14 @@ model DealReminder {
   @@index([userId])
 }
 
+model SignupAttempt {
+  id          String    @id @default(cuid())
+  ipHash      String
+  createdAt   DateTime  @default(now())
+
+  @@index([ipHash, createdAt])
+}
+
 // Records that we've emailed a user about a redemption option that just
 // became affordable for one of their accounts, so the daily cron doesn't
 // re-send. Unlike `DealReminder` (keyed on a stable string because `Deal`
@@ -108,7 +116,6 @@ model AffordabilityAlert {
   userId             String
   redemptionOptionId String
   sentAt             DateTime @default(now())
-
   account          Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   redemptionOption RedemptionOption @relation(fields: [redemptionOptionId], references: [id], onDelete: Cascade)

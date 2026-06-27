@@ -3,7 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { errorJson } from "@/lib/api";
+import { errorJson, getClientIp, hashClientIp } from "@/lib/api";
 
 export const runtime = "nodejs";
 
@@ -13,6 +13,10 @@ const schema = z.object({
   name: z.string().min(1).max(80).optional(),
 });
 
+// Unlike forgot-password, there's no account-enumeration concern here, so the
+// cap can be disclosed in the 429 response.
+const MAX_SIGNUPS_PER_IP_PER_HOUR = 5;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
@@ -20,6 +24,15 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return errorJson("Invalid input", 400, parsed.error.flatten());
     }
+
+    const ipHash = hashClientIp(getClientIp(req));
+    const recentAttempts = await db.signupAttempt.count({
+      where: { ipHash, createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) } },
+    });
+    if (recentAttempts >= MAX_SIGNUPS_PER_IP_PER_HOUR) {
+      return errorJson("Too many signup attempts. Please try again later.", 429);
+    }
+    await db.signupAttempt.create({ data: { ipHash } });
 
     const { email, password, name } = parsed.data;
     const hashed = await bcrypt.hash(password, 10);

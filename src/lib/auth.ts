@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { linkGoogleAccount } from "@/lib/auth-link";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -44,12 +45,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google" && user.email) {
-        const dbUser = await db.user.upsert({
-          where: { email: user.email },
-          update: { name: user.name ?? undefined, image: user.image ?? undefined },
-          create: { email: user.email, name: user.name, image: user.image },
+        const userId = await linkGoogleAccount({
+          email: user.email,
+          name: user.name,
+          image: user.image,
         });
-        user.id = dbUser.id;
+        if (!userId) return false;
+        user.id = userId;
       }
       return true;
     },

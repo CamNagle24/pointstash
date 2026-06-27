@@ -13,6 +13,7 @@ const userSelect = {
   notifyExpiring: true,
   notifyDeals: true,
   notifyDigest: true,
+  notifyAffordable: true,
   createdAt: true,
 } as const;
 
@@ -40,6 +41,7 @@ const patchSchema = z
     notifyExpiring: z.boolean().optional(),
     notifyDeals: z.boolean().optional(),
     notifyDigest: z.boolean().optional(),
+    notifyAffordable: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "No fields to update" });
 

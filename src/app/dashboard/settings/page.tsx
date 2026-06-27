@@ -18,7 +18,7 @@ import {
 import { useToast } from "@/components/ui/Toaster";
 import { useUser, type UserProfile } from "@/hooks/useUser";
 
-type PrefKey = "notifyExpiring" | "notifyDeals" | "notifyDigest";
+type PrefKey = "notifyExpiring" | "notifyDeals" | "notifyDigest" | "notifyAffordable";
 
 export default function SettingsPage() {
   const { user, isLoading, error, mutate } = useUser();
@@ -179,6 +179,12 @@ export default function SettingsPage() {
             description="A Sunday email recap of stash value and best deals."
             checked={user.notifyDigest}
             onChange={(v) => togglePref("notifyDigest", v)}
+          />
+          <SettingRow
+            title="Affordable redemption alerts"
+            description="Email me when my balance covers a redemption I couldn't afford before."
+            checked={user.notifyAffordable}
+            onChange={(v) => togglePref("notifyAffordable", v)}
           />
         </div>
       </Card>

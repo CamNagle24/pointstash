@@ -23,7 +23,7 @@
     "scrape": "tsx src/lib/scrapers/index.ts",
     "msw:init": "msw init public/ --save",
     "prepare": "husky",
-    "lint:staged": "ESLINT_USE_FLAT_CONFIG=false eslint --fix"
+    "lint:staged": "eslint --fix"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",

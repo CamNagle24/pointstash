@@ -37,23 +37,32 @@ test.describe("dashboard home", () => {
     await navTo(/^redeem$/i, /\/dashboard\/redeem/);
     await expect(page.getByRole("heading", { name: /redeem smarter/i })).toBeVisible();
 
-    await navTo(/^accounts$/i, /\/dashboard\/accounts/);
-    await expect(page.getByRole("heading", { name: /^accounts$/i })).toBeVisible();
+    // There's no standalone /dashboard/accounts route — Settings is the
+    // sidebar's 4th real link (see Sidebar.tsx's NAV_ITEMS).
+    await navTo(/^settings$/i, /\/dashboard\/settings/);
+    await expect(page.getByRole("heading", { name: /^settings$/i })).toBeVisible();
 
     await navTo(/^dashboard$/i, /\/dashboard$/);
   });
 
   test("shows empty state when no accounts linked", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto("/dashboard/accounts");
+    await page.goto("/dashboard");
+    await expect(page.getByRole("heading", { name: /your stash/i })).toBeVisible();
 
-    // Unlink every seeded account, then the empty-state card should appear.
-    while (await page.getByRole("button", { name: /unlink account/i }).count()) {
-      await page.getByRole("button", { name: /unlink account/i }).first().click();
+    // Disconnect every seeded account (gated behind a native window.confirm),
+    // then the "link your first chain" empty-state copy should appear.
+    page.on("dialog", (dialog) => dialog.accept());
+    const settingsButtons = page.getByRole("button", { name: /account settings/i });
+    while (await settingsButtons.count()) {
+      const before = await settingsButtons.count();
+      await settingsButtons.first().click();
+      await page.getByRole("button", { name: /^disconnect$/i }).click();
+      await expect(settingsButtons).toHaveCount(before - 1, { timeout: 10_000 });
     }
 
-    await expect(page.getByText(/no accounts yet/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /link account/i })).toBeVisible();
+    await expect(page.getByText(/link your first chain to start stacking/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /link a new account/i })).toBeVisible();
   });
 });
 

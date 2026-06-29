@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { resetMockStore } from "./reset-mock-store";
 
 // Seeded chickfila account (tests/mocks/fixtures/accounts.json) starts at 320
 // points. Of its redemptions, Chocolate Chunk Cookie (200 pts) is both the
@@ -7,6 +8,7 @@ import { test, expect } from "@playwright/test";
 test.describe("redeem flow", () => {
   test("marking a redemption deducts points and updates the balance", async ({ page }) => {
     await page.goto("/dashboard/redeem?chain=chickfila");
+    await resetMockStore(page);
 
     await expect(
       page.getByRole("heading", { name: /all chick-fil-a redemptions/i }),

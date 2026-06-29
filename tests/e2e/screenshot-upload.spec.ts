@@ -1,5 +1,6 @@
 import path from "node:path";
 import { test, expect } from "@playwright/test";
+import { resetMockStore } from "./reset-mock-store";
 
 // MSW's POST /api/upload mock (tests/mocks/handlers.ts) always returns
 // extractedPoints: 6240 / confidence: "high" regardless of the uploaded
@@ -13,6 +14,7 @@ test.describe("screenshot upload flow", () => {
   test("uploading a screenshot OCRs the balance and links the account", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/dashboard");
+    await resetMockStore(page);
     await expect(page.getByRole("heading", { name: /your stash/i })).toBeVisible();
 
     await page.getByRole("button", { name: /link a new account/i }).click();

@@ -22,6 +22,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Done
 <!-- routine PRs move completed items here -->
+- [x] Add `public/robots.txt` — disallows `/api/`, `/dashboard/`, `/login`, `/signup`, `/reset-password` from crawlers while allowing root/marketing pages.
 
 - [x] Security: fix pre-account-takeover via unverified-email account linking — landed via PR #98: `User.emailVerified DateTime?` (migration `20260627050000_add_user_email_verified`), `src/lib/auth-link.ts`'s `linkGoogleAccount` refuses to auto-link a Google identity onto an existing row with an unverified email, links cleanly onto verified rows, and stamps `emailVerified` on brand-new Google sign-ins; covered by `tests/unit/auth-link.test.ts`. (This entry was mistakenly resurrected into the Queue by the `[routine] groom backlog (#104)` PR, which branched from a base that predated #98's merge; reconciled here.)
 - [x] Affordable-redemption-alert: cron route — `GET /api/cron/affordable-redemptions` (`src/app/api/cron/affordable-redemptions/route.ts`) landed via PR #100; cron-secret guarded, wires `affordable-alerts.ts` + `affordable-alert-email.ts`, records `AffordabilityAlert` rows, registered in `vercel.json`; covered by `tests/unit/api-affordable-redemptions-cron.test.ts`. (Also mistakenly resurrected by PR #104; reconciled here.)

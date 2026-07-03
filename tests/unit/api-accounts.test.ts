@@ -112,6 +112,24 @@ describe("POST /api/accounts", () => {
     );
     expect((await POST(jsonReq("POST", body))).status).toBe(409);
   });
+
+  it("400s when currentPoints is negative", async () => {
+    const res = await POST(jsonReq("POST", { ...body, currentPoints: -1 }));
+    expect(res.status).toBe(400);
+    expect(acctCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("400s when currentPoints is a non-integer float", async () => {
+    const res = await POST(jsonReq("POST", { ...body, currentPoints: 1.5 }));
+    expect(res.status).toBe(400);
+    expect(acctCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("400s when currentPoints is a non-numeric string", async () => {
+    const res = await POST(jsonReq("POST", { ...body, currentPoints: "not-a-number" }));
+    expect(res.status).toBe(400);
+    expect(acctCreateMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("PUT /api/accounts/[id]", () => {

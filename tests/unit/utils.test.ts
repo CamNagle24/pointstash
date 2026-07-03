@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import {
   cn,
   formatPoints,
@@ -8,6 +8,7 @@ import {
   pointsToDollars,
   getExpirationLabel,
   timeAgo,
+  timeUntil,
   dealHref,
 } from "@/lib/utils";
 
@@ -110,6 +111,53 @@ describe("dealHref", () => {
 
   it("omits the anchor when there's no anchorText or title", () => {
     expect(dealHref({}, chain)).toBe("https://wendys.com/rewards");
+  });
+});
+
+describe("timeUntil", () => {
+  const BASE = new Date("2026-07-02T12:00:00Z").getTime();
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(BASE);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("returns 'Expired' for past dates", () => {
+    expect(timeUntil(new Date(BASE - 1000))).toBe("Expired");
+    expect(timeUntil(new Date(0))).toBe("Expired");
+  });
+
+  it("returns 'Expired' for the exact current moment (ms === 0)", () => {
+    expect(timeUntil(new Date(BASE))).toBe("Expired");
+  });
+
+  it("returns days for dates ≥ 24 h from now", () => {
+    expect(timeUntil(new Date(BASE + 3 * 24 * 60 * 60 * 1000))).toBe("3d");
+    expect(timeUntil(new Date(BASE + 1 * 24 * 60 * 60 * 1000))).toBe("1d");
+  });
+
+  it("returns hours for dates between 1 h and 24 h from now", () => {
+    expect(timeUntil(new Date(BASE + 4 * 60 * 60 * 1000))).toBe("4h");
+    expect(timeUntil(new Date(BASE + 1 * 60 * 60 * 1000))).toBe("1h");
+  });
+
+  it("returns minutes for dates between 1 m and 1 h from now", () => {
+    expect(timeUntil(new Date(BASE + 30 * 60 * 1000))).toBe("30m");
+    expect(timeUntil(new Date(BASE + 60 * 1000))).toBe("1m");
+  });
+
+  it("clamps sub-minute remaining time to '1m'", () => {
+    expect(timeUntil(new Date(BASE + 59 * 1000))).toBe("1m");
+    expect(timeUntil(new Date(BASE + 1))).toBe("1m");
+  });
+
+  it("accepts a string date the same as a Date object", () => {
+    const future = new Date(BASE + 2 * 24 * 60 * 60 * 1000);
+    expect(timeUntil(future.toISOString())).toBe("2d");
   });
 });
 

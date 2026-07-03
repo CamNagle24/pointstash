@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { resetMockStore } from "./reset-mock-store";
 
 test.describe("deals feed", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/dashboard/deals");
+    await resetMockStore(page);
   });
 
   test("loads and displays current deals", async ({ page }) => {

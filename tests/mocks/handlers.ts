@@ -297,4 +297,16 @@ export const handlers = [
       errors: [],
     }),
   ),
+
+  // ─────────────────────────── e2e test utils ───────────────────────
+  // The in-memory store above lives inside whatever JS realm runs these
+  // handlers — the browser Service Worker in MSW dev mode, or this Node
+  // process under Vitest. There's no real server-side route that could
+  // reach it, so a Playwright spec must reset it from page context (e.g.
+  // `page.evaluate(() => fetch("/api/test/reset-mock-store", { method:
+  // "POST" }))`), not via `page.request`, which bypasses the SW entirely.
+  http.post("/api/test/reset-mock-store", () => {
+    resetMockStore();
+    return HttpResponse.json({ ok: true });
+  }),
 ];

@@ -2,6 +2,104 @@
 
 Append-only. Newest first.
 
+## 2026-06-29 — Connector graduation: pick the first chain to move off scrape/manual
+
+**Goal:** ROADMAP.md's "Next" item — "More chains / connectors graduating from
+scrape to official APIs." `src/lib/connectors/` has 17 `BaseConnector` subclasses,
+every one a documented-but-unimplemented stub (`implemented = false`); `src/lib/
+scrapers/sources.ts`'s comment flags `pancheros`, `culvers`, `buffalowildwings`,
+`kfc`, and `pandaexpress` as having no scrapeable deals text source either (JS-only
+SPAs or bot-walled), so for these five a real loyalty-API connector is the only
+path to anything beyond MANUAL/SCREENSHOT entry. This decision picks which of
+those five graduates first.
+
+### Survey (from each connector stub's own research notes)
+
+| Chain | Vendor / platform | Auth shape | Documented blocker |
+|---|---|---|---|
+| `pancheros` | Paytronix (3rd-party, multi-tenant) | email+pwd → session cookie | none noted |
+| `pandaexpress` | In-house, mirrors `chipotle.ts`'s shape | email+pwd → Bearer JWT | "unverified at scale" |
+| `kfc` | Yum! Brands (shared with `tacobell.ts`) | email+pwd → Cognito JWT | none noted, but needs live traffic capture to confirm headers |
+| `culvers` | In-house, no shared platform identified | email+pwd → Bearer JWT | "auth flow is unverified" |
+| `buffalowildwings` | Inspire Brands (shared with `dunkin.ts`) | email+pwd → Bearer JWT | Akamai bot manager — same wall blocking Dunkin' |
+
+### Pick: `pancheros`
+
+Two things make it lowest-risk to go first, not just lowest-friction:
+1. **No bot-wall blocker documented** — `buffalowildwings` inherits Dunkin's
+   Akamai problem outright; `pandaexpress`/`culvers` are explicitly flagged
+   "unverified"/"unverified at scale." Pancheros is the only one of the five
+   with neither caveat.
+2. **Paytronix is a shared vendor**, not an in-house API — it's the loyalty
+   backend behind a large number of independent restaurant chains, so its
+   request/response shape is comparatively well-trodden ground (third-party
+   API clients and writeups exist for the platform in general, even where
+   Pancheros-specific traffic hasn't been captured yet). `pancheros.ts`'s own
+   comment already calls this out: "once this connector is real, the same
+   shape should cover other Paytronix brands" — first-mover investment here
+   pays off again the next time a Paytronix-backed chain gets added.
+3. Session-cookie auth has no separate access/refresh token pair to manage —
+   simpler `authenticate`/`getPointsBalance` contract than the JWT chains,
+   which matters because `BaseConnector.refreshToken` doesn't cleanly apply to
+   a cookie session anyway (see below).
+
+### Decomposition (implementation tasks, in order)
+
+1. **Encrypt `Account.credentials` at rest.** It's an unused `Json?` column
+   today (`prisma/schema.prisma:179`) — nothing reads or writes it yet. Before
+   *any* connector goes live, add an `encrypt`/`decrypt` helper (AES-GCM,
+   keyed off a new `CREDENTIALS_ENCRYPTION_KEY` env var — do not derive it from
+   `AUTH_SECRET`, which has its own rotation lifecycle) and route all
+   `credentials` reads/writes through it. This is a prerequisite for every
+   future connector, not just Pancheros — security sign-off required before
+   merge per `agents/security.md`.
+2. **`PaytronixConnector` base class** in `src/lib/connectors/paytronix.ts` —
+   shared `authenticate`/`getPointsBalance` logic parametrized by per-brand
+   config (base URL, brand ID), so the next Paytronix chain is a config object,
+   not a rewrite. `PancherosConnector extends PaytronixConnector`.
+3. **Live traffic verification** — confirm the login/balance endpoint shapes
+   `pancheros.ts`'s comment already guesses at (`/api/paytronix/login`,
+   `/api/paytronix/balance`) against the real site before wiring real request
+   code; adjust the connector to match what's actually observed.
+4. **`authenticate()`** — POST credentials, store the session cookie (via the
+   encryption helper from #1) + a conservative estimated expiry in
+   `Account.credentials`. **`refreshToken()`** deviates from the literal
+   per-token-refresh contract: Paytronix sessions aren't independently
+   refreshable, so this re-runs `authenticate()` with the stored credentials
+   instead of exchanging a refresh token. Document the deviation in the class
+   so future connectors with real refresh tokens don't copy this shortcut.
+5. **Sync cron** — `GET /api/cron/sync-accounts`, cron-secret guarded
+   (`isCronRequest`, mirroring `/api/cron/affordable-redemptions`). Iterates
+   `Account`s where `syncMethod === "API"` and `getConnector(chainSlug)
+   ?.implemented`, skipping any synced within a floor interval (start at 6h)
+   to keep Pancheros's request volume conservative — there's no published
+   rate limit, so the floor is a deliberately cautious guess, not a measured
+   number. Updates `currentPoints` + inserts `PointsHistory`
+   (`changeReason: "SYNC"`, already in the `ChangeReason` enum — no migration
+   needed there).
+6. **Connect-account flow** — a `POST /api/accounts/[id]/connect` route
+   collecting Paytronix email/password from `AddAccountModal` and calling
+   `authenticate()`. Once `PancherosConnector.implemented` flips to `true`,
+   `hasImplementedConnector()` (`src/lib/connectors/index.ts`) already gates
+   the modal's "Auto-sync" option — no UI registry change needed beyond this
+   route and the credential-collection step itself.
+7. **Un-flag `implemented = true` on `PancherosConnector` only** once 3–6 are
+   verified end-to-end against the real Pancheros site. The other four chains
+   stay stubs pending their own future decisions.
+
+### What this design does NOT do
+- Does not touch `culvers`/`buffalowildwings`/`kfc`/`pandaexpress` — they
+  remain `NotImplementedError` stubs; whichever graduates next gets its own
+  decision entry once #1–7 above prove the pattern out.
+- Does not change `AddAccountModal`'s MANUAL/SCREENSHOT paths — Auto-sync is
+  additive, not a replacement.
+- Does not add a generic plugin/webhook system for arbitrary loyalty vendors —
+  one shared `PaytronixConnector` base class is enough leverage for now; a
+  broader abstraction isn't justified until a second non-Paytronix connector
+  is real.
+
+---
+
 ## 2026-06-19 — Affordable-redemption-alert design
 
 **Goal:** ROADMAP.md's "Alerts when a high-value redemption becomes affordable" —

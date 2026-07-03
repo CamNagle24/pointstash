@@ -76,10 +76,17 @@ const TONE_CLASSES: Record<Status["tone"], string> = {
 export function AccountDetailsDialog({ account, open, onOpenChange, onChange }: Props) {
   const [reconnecting, setReconnecting] = React.useState(false);
   const [disconnecting, setDisconnecting] = React.useState(false);
+  const [confirmingDisconnect, setConfirmingDisconnect] = React.useState(false);
   const { toast } = useToast();
   // Only fetch history while the dialog is open for this account.
   const { history, isLoading: historyLoading } = usePointsHistory(open ? account?.id : undefined);
   const series = React.useMemo(() => buildBalanceSeries(history), [history]);
+
+  // Drop back to the details view whenever the dialog closes, so it doesn't
+  // reopen on the confirm step for whichever account is selected next.
+  React.useEffect(() => {
+    if (!open) setConfirmingDisconnect(false);
+  }, [open]);
 
   if (!account) return null;
 
@@ -145,7 +152,6 @@ export function AccountDetailsDialog({ account, open, onOpenChange, onChange }: 
   };
 
   const disconnect = async () => {
-    if (!confirm(`Unlink your ${chain.name} account? You can always relink later.`)) return;
     setDisconnecting(true);
     try {
       const res = await fetch(`/api/accounts/${account.id}`, { method: "DELETE" });
@@ -164,8 +170,40 @@ export function AccountDetailsDialog({ account, open, onOpenChange, onChange }: 
       });
     } finally {
       setDisconnecting(false);
+      setConfirmingDisconnect(false);
     }
   };
+
+  if (confirmingDisconnect) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <ChainLogo slug={slug} size="md" />
+              <div>
+                <DialogTitle>Unlink {chain.name}?</DialogTitle>
+                <DialogDescription>You can always relink later.</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmingDisconnect(false)}
+              disabled={disconnecting}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={disconnect} loading={disconnecting} className="gap-1.5">
+              {disconnecting ? null : <Trash2 className="h-4 w-4" />}
+              Disconnect
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -258,15 +296,11 @@ export function AccountDetailsDialog({ account, open, onOpenChange, onChange }: 
         <DialogFooter>
           <Button
             variant="ghost"
-            onClick={disconnect}
+            onClick={() => setConfirmingDisconnect(true)}
             disabled={disconnecting || reconnecting}
             className="gap-1.5 hover:text-[var(--danger)]"
           >
-            {disconnecting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
+            <Trash2 className="h-4 w-4" />
             Disconnect
           </Button>
           <Button

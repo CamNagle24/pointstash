@@ -45,8 +45,11 @@ export async function GET(req: NextRequest) {
       return errorJson("Invalid source value", 400);
     }
 
+    const chainSlugParam = req.nextUrl.searchParams.get("chainSlug") ?? undefined;
+
     const where: Prisma.DealWhereInput = {
       ...(sourceParsed?.success && { source: sourceParsed.data }),
+      ...(chainSlugParam && { chain: { slug: chainSlugParam } }),
     };
 
     const deals = await db.deal.findMany({

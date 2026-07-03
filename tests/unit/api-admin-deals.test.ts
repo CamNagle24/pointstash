@@ -98,6 +98,23 @@ describe("GET /api/admin/deals", () => {
     expect(res.status).toBe(400);
     expect(dealFindManyMock).not.toHaveBeenCalled();
   });
+
+  it("filters by chainSlug", async () => {
+    asAdmin();
+    await GET(jsonReq("http://localhost/api/admin/deals?chainSlug=wendys", "GET"));
+    expect(dealFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { chain: { slug: "wendys" } } }),
+    );
+  });
+
+  it("returns 200 with empty array for unknown chainSlug", async () => {
+    asAdmin();
+    dealFindManyMock.mockResolvedValue([]);
+    const res = await GET(jsonReq("http://localhost/api/admin/deals?chainSlug=doesnotexist", "GET"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.total).toBe(0);
+  });
 });
 
 describe("POST /api/admin/deals", () => {

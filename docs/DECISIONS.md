@@ -221,6 +221,62 @@ columns and their Settings → Notifications toggles
 
 ---
 
+## 2026-07-03 — Credentials login under MSW/no-DB Playwright e2e mode
+
+**Context:** `tests/e2e/auth.spec.ts`'s `"user can log in"` test (currently
+`test.fixme`) calls NextAuth's credentials `signIn`. The dev server used by
+Playwright has `NEXT_PUBLIC_ENABLE_MSW=1` (MSW intercepts all browser-layer
+`fetch` calls), but `authorize()` in `src/lib/auth.ts` calls `db.user.findUnique`
+server-side via Prisma — the MSW Service Worker never sees this Prisma call. With no
+`DATABASE_URL` wired into `playwright.config.ts`, the dev server logs
+`PrismaClientInitializationError: Environment variable not found: DATABASE_URL`
+and the sign-in just bounces back to `/login`, even after adding `AUTH_SECRET`.
+
+**Options surveyed:**
+
+**Option A — MSW-aware bypass in `authorize()`:**
+Add a server-side-only guard to `authorize()`: if
+`process.env.AUTH_BYPASS_FOR_PLAYWRIGHT === "1"` AND
+`process.env.NODE_ENV !== "production"`, skip the Prisma lookup and return the
+fixture demo user (`{ id: "user_demo", email: "you@stash.it", name: "You",
+image: null }`) when the submitted credentials match a fixed test pair (e.g.
+`you@stash.it` / `testpassword123`). Set `AUTH_BYPASS_FOR_PLAYWRIGHT=1` and
+`AUTH_SECRET` in `playwright.config.ts`'s `webServer.env` alongside the
+existing `NEXT_PUBLIC_ENABLE_MSW: "1"`.
+
+**Option B — Real Postgres for the Playwright run:**
+Add a disposable Postgres service container to the CI job (e.g. via GitHub
+Actions `services:`) and wire `DATABASE_URL` + a seeded Prisma migration into
+`playwright.config.ts`. Tests the actual auth code path end-to-end.
+
+**Decision: Option A.**
+
+Rationale: Option B requires significant CI infrastructure additions (Postgres
+service, `prisma migrate deploy`, seed data for auth) and would make the
+Playwright job meaningfully slower for a single fixme'd test. Option A is
+self-contained and keeps parity with the existing MSW pattern for all other
+e2e specs. The security risk is acceptable given:
+
+1. `AUTH_BYPASS_FOR_PLAYWRIGHT` is a **server-only** env var (no `NEXT_PUBLIC_`
+   prefix) — it cannot be set from the browser and is invisible to client-side code.
+2. The `NODE_ENV !== "production"` guard is a second independent firewall.
+3. Vercel (production deploy target) never sets this var; its absence means the
+   bypass is simply unreachable in any production execution path.
+4. The mock user returned when the bypass fires (`user_demo` / `you@stash.it`)
+   is the same identity the existing `/api/auth/session` MSW mock already fakes —
+   no new data or privilege surface is introduced.
+
+**Security requirement:** The implementation PR must pass security review
+(agents/security.md) before merge. Reviewer should confirm: (1) the guard
+uses a non-`NEXT_PUBLIC_*` env var, (2) the `NODE_ENV !== "production"` second
+guard is intact, (3) no production deploy sets `AUTH_BYPASS_FOR_PLAYWRIGHT`.
+Option B remains the right long-term choice if the project moves to a
+full-stack CI environment with a real database.
+
+**Implementation task queued at top of `docs/TASKS.md`.**
+
+---
+
 ## 2026-06-16 — Redemption-completion flow design
 
 **Goal:** Let users mark that they have redeemed a `RedemptionOption` (e.g., "I just

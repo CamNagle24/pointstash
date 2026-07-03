@@ -28,6 +28,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Done
 <!-- routine PRs move completed items here -->
+- [x] Add branded 404 page `src/app/not-found.tsx` — centered on-brand card with "Page not found" heading, a short message, and a "Go to Dashboard" link; consistent with the dashboard's empty-state card style.
 
 - [x] Affordable-redemption-alert: schema migration — `User.notifyAffordable Boolean @default(true)` and the `AffordabilityAlert` model (`{ id, accountId, userId, redemptionOptionId, sentAt }`, `@@unique([accountId, redemptionOptionId])`, `@@index([userId])`, cascading FKs) landed via migration `20260620151332_add_affordability_alert`; `prisma/seed.ts` remains idempotent.
 - [x] Affordable-redemption-alert: detection helpers — `src/lib/affordable-alerts.ts`'s `findNewlyAffordableAccounts`/`affordableAlertKey`, reusing `bestRedemptionFor`; covered by `tests/unit/affordable-alerts.test.ts` (not-yet-affordable, newly-affordable, already-alerted cases).

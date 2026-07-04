@@ -2,6 +2,102 @@
 
 Append-only. Newest first.
 
+## 2026-07-04 — First connector to graduate: Panda Express
+
+**Goal:** Per ROADMAP.md's "Next" item, pick which of the five stub-only chains
+(`pancheros`, `culvers`, `buffalowildwings`, `kfc`, `pandaexpress`) should become
+the first real API connector, and decompose the work.
+
+### Candidate survey
+
+| Chain | Platform | Auth flow | Known obstacles |
+|---|---|---|---|
+| Pancheros | Paytronix (`pancheros.com/api/paytronix/*`) | Email + password → session cookie | Paytronix partner API requires B2B credentials; chain's proxy endpoint is unversioned |
+| Culver's | Unknown first-party | Email + password → Bearer JWT | No shared platform identified; auth flow unverified |
+| Buffalo Wild Wings | Inspire Brands (same as Dunkin') | Email + password → CMA token | Akamai bot-manager blocks automated login — the identical hurdle blocking `dunkin.ts` |
+| KFC | Yum! Brands / AWS Cognito (same as Taco Bell) | Cognito PKCE → Cognito JWT | Cognito device-fingerprinting adds a second round-trip; KFC-specific client ID not yet confirmed |
+| **Panda Express** | First-party `pandaexpress.com` loyalty API | Email + password → Bearer JWT | None observed yet; `pandaexpress.ts`'s comment notes "no bot wall observed yet, but unverified at scale" |
+
+### Decision: Panda Express first
+
+Panda Express wins on three grounds:
+
+1. **Lowest friction.** No bot wall observed, no third-party platform dependency, standard
+   Bearer-JWT flow identical to the Chipotle connector design (same comment in the source:
+   "Shape mirrors chipotle.ts closely (same loyalty platform vendor)"). Chipotle's
+   endpoint map (`POST /api/auth/login`, `GET /api/loyalty/me`,
+   `GET /api/loyalty/transactions`) transfers directly.
+
+2. **No new schema.** `Account.credentials Json?` already stores arbitrary JSON and
+   `SyncMethod.API` is already an enum value — neither landed in this session, they
+   pre-exist. The connector can store `{ accessToken, refreshToken, expiresAt }` in
+   `credentials` with AES-256-GCM encryption (same pattern as `ExtensionToken.tokenHash`
+   for the key-derivation layer, adapted for two-way retrieval rather than one-way hash).
+   No Prisma migration needed.
+
+3. **Generalizability second.** Once the encrypt/store/refresh pattern is proven for
+   Panda Express, KFC (Yum!/Cognito) is a host swap on top of the same scaffolding,
+   and the Akamai mitigation work for Buffalo Wild Wings / Dunkin' can share any
+   retry/cookie-jar logic introduced here.
+
+### Deferred (and why)
+
+- **Pancheros**: Paytronix's official API is B2B (requires a merchant contract). The
+  `pancheros.com/api/paytronix/*` chain-proxy is undocumented and unversioned —
+  invest here only after Panda Express proves the scaffolding.
+- **Culver's**: Privately held, no platform identified; auth flow entirely unverified.
+  Validate in a later research spike.
+- **Buffalo Wild Wings**: Akamai bot wall is a real blocker — tackle Akamai mitigation
+  (rotating user-agents, TLS fingerprint spoofing, or a headless-browser fallback) as
+  a dedicated cross-cutting task that then unblocks both BWW and Dunkin'.
+
+### Encrypted credential storage
+
+`Account.credentials` is already `Json?` and encrypted at rest by Supabase's disk
+encryption. For field-level encryption (defense-in-depth — protects against a
+credential dump even if the DB row is leaked), use Node's `crypto.subtle` AES-256-GCM:
+
+- Key derived from `process.env.CREDENTIALS_ENCRYPTION_KEY` (32-byte hex; new env var
+  to document in `.env.example`, `docs/DEPLOYMENT.md`).
+- Helper `src/lib/connector-crypto.ts`: `encryptCredentials(token: AuthToken): string`
+  and `decryptCredentials(blob: string): AuthToken`, wrapping `subtle.encrypt` /
+  `subtle.decrypt`.
+- Stored as `{ iv: <base64>, ciphertext: <base64> }` in `Account.credentials`.
+- On `DELETE /api/accounts/[id]` the row (and its credentials) are already cascade-deleted.
+
+### Rate limits
+
+No published rate-limit docs for Panda Express's loyalty API. Defensive defaults:
+- Max 1 auto-sync per account per hour (enforced in the cron by comparing
+  `Account.lastSynced` — if within 60 minutes, skip).
+- Exponential back-off (1 s, 2 s, 4 s) on 429 / 503 responses before marking the
+  account sync as failed.
+
+### Implementation tasks (inserted at top of queue, in order)
+
+1. `src/lib/connector-crypto.ts` — `encryptCredentials` / `decryptCredentials` with
+   AES-256-GCM; document `CREDENTIALS_ENCRYPTION_KEY` in `.env.example` and
+   `docs/DEPLOYMENT.md`; unit tests (round-trip, wrong-key throws, missing env rejects).
+2. Implement `PandaExpressConnector` in `src/lib/connectors/pandaexpress.ts` —
+   `authenticate` (POST `/api/auth/login` → store encrypted token), `getPointsBalance`
+   (GET `/api/loyalty/me`), `getRecentTransactions` (GET `/api/loyalty/transactions`,
+   cursor pagination), `refreshToken`; set `implemented = true`; unit tests mocking
+   `fetch` for each method + a 429 back-off case.
+3. `GET /api/cron/sync-connector-accounts` — cron-secret guarded, iterates
+   `API`-synced accounts with non-null `credentials`, calls
+   `connector.getPointsBalance()` + `getRecentTransactions()`, writes
+   `PointsHistory` rows (`changeReason: SYNC`), updates `Account.currentPoints` +
+   `lastSynced`; returns `{ ok, synced, errors }` mirroring other cron routes;
+   register in `vercel.json`; unit tests.
+4. UI: expose "Auto-sync" as a third option in `AddAccountModal` when
+   `hasImplementedConnector(chainId)` is true — collect email + password, call a new
+   Server Action `connectAccount(accountId, credentials)` that calls
+   `connector.authenticate()`, stores the encrypted token, sets
+   `syncMethod: API`; show "Last auto-synced: \<relative time\>" in
+   `ChainAccountCard` when `syncMethod === "API"`; E2E test.
+
+---
+
 ## 2026-06-19 — Affordable-redemption-alert design
 
 **Goal:** ROADMAP.md's "Alerts when a high-value redemption becomes affordable" —

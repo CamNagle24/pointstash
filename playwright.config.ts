@@ -32,6 +32,11 @@ export default defineConfig({
     timeout: 180_000,
     // Drives the dev server off the MSW fixtures (tests/mocks) instead of a
     // real Postgres connection — see docs/PROJECT.md's "UI without a DB".
-    env: { NEXT_PUBLIC_ENABLE_MSW: "1" },
+    env: {
+      NEXT_PUBLIC_ENABLE_MSW: "1",
+      // Throwaway test-only secret so NextAuth can sign/verify session JWTs in
+      // the Playwright dev server. Never use this value in production.
+      AUTH_SECRET: "playwright-e2e-test-secret-do-not-use-in-prod",
+    },
   },
 });

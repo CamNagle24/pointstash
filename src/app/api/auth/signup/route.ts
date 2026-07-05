@@ -25,6 +25,11 @@ export async function POST(req: NextRequest) {
       return errorJson("Invalid input", 400, parsed.error.flatten());
     }
 
+    // Prune rows older than the 1-hour rate-limit window before checking the
+    // count so the table doesn't grow unbounded over time.
+    const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+    void db.signupAttempt.deleteMany({ where: { createdAt: { lt: cutoff } } });
+
     const ipHash = hashClientIp(getClientIp(req));
     const recentAttempts = await db.signupAttempt.count({
       where: { ipHash, createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) } },

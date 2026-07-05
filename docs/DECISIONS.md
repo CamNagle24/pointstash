@@ -2,6 +2,39 @@
 
 Append-only. Newest first.
 
+## 2026-07-05 — SignupAttempt table cleanup strategy
+
+**Goal:** `SignupAttempt` rows are inserted on every attempt (including
+rate-limited ones) but never deleted. The table grows unboundedly over
+time, and the `@@index([ipHash, createdAt])` TTL-window query that
+powers the 5-per-IP-per-hour cap (`createdAt: { gt: now − 1h }`) scans
+more rows than needed as stale entries accumulate.
+
+### Options surveyed
+
+| Option | Approach | Pros | Cons |
+|---|---|---|---|
+| (a) Piggyback on `/api/cron/scrape-deals` | Delete rows older than 2 h inside the existing deal-scraping cron before returning | No new `vercel.json` entry | Cleanup tied to the deals-cron cadence (once/hour in prod); adds unrelated logic to a function that already has `maxDuration = 300`; a deals-cron failure stops cleanup |
+| (b) Dedicated cleanup cron | A new lightweight `GET /api/cron/cleanup-signup-attempts` endpoint added to `vercel.json` | Clean separation of concerns | Extra `vercel.json` entry + new route file for a simple delete; overkill for housekeeping that generates negligible I/O |
+| (c) Request-time cleanup | Fire-and-forget `deleteMany` at the top of `POST /api/auth/signup`, cutoff = now − 1 h | No new infra; cleanup rate matches insert rate; table stays bounded during active signup traffic; failure is benign | Table doesn't shrink if signup traffic stops — acceptable: rows only matter under active signup load, and once traffic stops the index is never queried |
+
+### Pick: option (c) — request-time cleanup
+
+The rows are only operationally relevant during active signup traffic.
+Tying cleanup to the insert handler means the table is naturally bounded
+to roughly one hour's worth of attempts from active IPs, which is
+precisely the set the rate-limit query needs. Options (a) and (b) both
+run cleanup on a schedule independent of inserts, so the table can
+transiently grow between cron ticks even under active load.
+
+Implementation detail: the `deleteMany` is fire-and-forget (`void`) — a
+failure does not abort the signup response. The rate-limit count query
+already uses its own `createdAt: { gt: window }` filter, so stale rows
+that survive a `deleteMany` failure are never counted toward the cap
+anyway. No schema change or new migration needed.
+
+---
+
 ## 2026-06-29 — Connector graduation: pick the first chain to move off scrape/manual
 
 **Goal:** ROADMAP.md's "Next" item — "More chains / connectors graduating from

@@ -126,4 +126,31 @@ describe("GET /api/points/history", () => {
       expect.objectContaining({ where: { userId: "user_1", accountId: "a1" } }),
     );
   });
+
+  it("forwards custom limit and offset to findMany as take/skip", async () => {
+    historyFindManyMock.mockResolvedValue([]);
+    historyCountMock.mockResolvedValue(0);
+    await history(historyReq("?limit=10&offset=20"));
+    expect(historyFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 10, skip: 20 }),
+    );
+  });
+
+  it("clamps limit above 200 to 200", async () => {
+    historyFindManyMock.mockResolvedValue([]);
+    historyCountMock.mockResolvedValue(0);
+    await history(historyReq("?limit=999"));
+    expect(historyFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 200 }),
+    );
+  });
+
+  it("response shape always includes { history, total, limit, offset }", async () => {
+    historyFindManyMock.mockResolvedValue([{ id: "h1" }]);
+    historyCountMock.mockResolvedValue(1);
+    const res = await history(historyReq("?limit=5&offset=10"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ history: expect.any(Array), total: 1, limit: 5, offset: 10 });
+  });
 });

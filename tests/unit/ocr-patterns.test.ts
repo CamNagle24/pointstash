@@ -139,3 +139,59 @@ describe("extractPointsFromText", () => {
     expect(result.matchedPattern).toBe("chain");
   });
 });
+
+describe("correctOcrDigits", () => {
+  it("replaces O/o with 0 adjacent to a digit", () => {
+    expect(correctOcrDigits("6,24O")).toBe("6,240");
+    expect(correctOcrDigits("1o2")).toBe("102");
+    expect(correctOcrDigits("8OO")).toBe("800");
+  });
+
+  it("replaces I and l with 1 adjacent to a digit", () => {
+    expect(correctOcrDigits("l42")).toBe("142");
+    expect(correctOcrDigits("4I2")).toBe("412");
+  });
+
+  it("replaces S with 5 adjacent to a digit", () => {
+    expect(correctOcrDigits("S00")).toBe("500");
+    expect(correctOcrDigits("62S0")).toBe("6250");
+  });
+
+  it("replaces B with 8 adjacent to a digit", () => {
+    expect(correctOcrDigits("B42")).toBe("842");
+    expect(correctOcrDigits("10B")).toBe("108");
+  });
+
+  it("does not corrupt standalone words like 'Points'", () => {
+    expect(correctOcrDigits("Points earned today")).toBe("Points earned today");
+    expect(correctOcrDigits("Balance")).toBe("Balance");
+  });
+
+  it("handles comma-separated numbers where artifact is adjacent to a digit", () => {
+    // The digit before the comma anchors the trailing run (e.g. 5OO → 500)
+    expect(correctOcrDigits("1,5OO")).toBe("1,500");
+    expect(correctOcrDigits("6,24O")).toBe("6,240");
+  });
+
+  it("applies multiple substitutions in the same contiguous run", () => {
+    // B leads into digits (lookahead), then 2O is an inner run.
+    expect(correctOcrDigits("B42O")).toBe("8420");
+    // S leads into 00, then 0B closes.
+    expect(correctOcrDigits("S0B")).toBe("508");
+  });
+
+  it("leaves clean numeric strings unchanged", () => {
+    expect(correctOcrDigits("1234")).toBe("1234");
+    expect(correctOcrDigits("6,240 points")).toBe("6,240 points");
+  });
+
+  it("handles mixed clean and corrupted runs in the same string", () => {
+    // "1,24O" → "1,240" (4O run corrected); "S00" → "500" (S followed by digit)
+    const input = "Balance: 1,24O tokens — spend S00 now";
+    const output = correctOcrDigits(input);
+    expect(output).toContain("1,240");
+    expect(output).toContain("500");
+    expect(output).toContain("tokens");
+    expect(output).toContain("now");
+  });
+});

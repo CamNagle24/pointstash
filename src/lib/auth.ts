@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { linkGoogleAccount } from "@/lib/auth-link";
+import { getClientIp, hashClientIp } from "@/lib/api";
+import { hashEmail, isLoginRateLimited, recordFailedLogin } from "@/lib/auth-login-rate-limit";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -28,15 +30,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const parsed = credentialsSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
+        const ipHash = hashClientIp(getClientIp(request as Request));
+        const emailHash = hashEmail(parsed.data.email);
+
+        if (await isLoginRateLimited(ipHash, emailHash)) return null;
+
         const user = await db.user.findUnique({ where: { email: parsed.data.email } });
-        if (!user?.password) return null;
+        if (!user?.password) {
+          void recordFailedLogin(ipHash, emailHash);
+          return null;
+        }
 
         const valid = await bcrypt.compare(parsed.data.password, user.password);
-        if (!valid) return null;
+        if (!valid) {
+          void recordFailedLogin(ipHash, emailHash);
+          return null;
+        }
 
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },

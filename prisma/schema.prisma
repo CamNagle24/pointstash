@@ -104,6 +104,16 @@ model SignupAttempt {
   @@index([ipHash, createdAt])
 }
 
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ipHash    String
+  emailHash String
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
+  @@index([emailHash, createdAt])
+}
+
 // Records that we've emailed a user about a redemption option that just
 // became affordable for one of their accounts, so the daily cron doesn't
 // re-send. Unlike `DealReminder` (keyed on a stable string because `Deal`

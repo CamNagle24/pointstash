@@ -31,10 +31,13 @@ test.describe("auth", () => {
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
-  // Auth guard isn't wired up yet — middleware redirect lands here once added.
-  test.fixme("unauthenticated user is redirected to login", async ({ page }) => {
+  test("unauthenticated user is redirected to login", async ({ page }) => {
     await page.goto("/dashboard");
+    // middleware.ts redirects to /login?from=<path> — check both the destination
+    // and that the ?from param is preserved so the user can be sent back after login.
     await expect(page).toHaveURL(/\/login/);
+    const url = new URL(page.url());
+    expect(url.searchParams.get("from")).toBe("/dashboard");
   });
 
   test.fixme("user can log out", async ({ page }) => {

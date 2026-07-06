@@ -27,10 +27,31 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "10mb" },
   },
   async headers() {
+    // 'unsafe-inline' on script-src is required by Next.js App Router (inline
+    // hydration scripts). 'unsafe-eval' covers RSC streaming in development.
+    // blob: on img-src supports ScreenshotUploader's local preview URL.
+    // lh3.googleusercontent.com is the only external image host (Google OAuth
+    // profile photos via next/image's remotePatterns).
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' blob: data: https://lh3.googleusercontent.com",
+      "font-src 'self'",
+      "connect-src 'self'",
+      "media-src 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "worker-src 'self'",
+    ].join("; ");
+
     return [
       {
         source: "/:path*",
         headers: [
+          { key: "Content-Security-Policy", value: csp },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

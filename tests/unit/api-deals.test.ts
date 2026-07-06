@@ -64,4 +64,31 @@ describe("GET /api/deals — hybrid feed", () => {
     const res = await GET(req());
     expect(res.status).toBe(500);
   });
+
+  it("returns 200 with empty deals array for an unknown chain slug", async () => {
+    authMock.mockResolvedValue(null);
+
+    const res = await GET(req("?chain=doesnotexist"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.deals).toEqual([]);
+    expect(body).toHaveProperty("total");
+    expect(body).toHaveProperty("limit");
+    expect(body).toHaveProperty("offset");
+  });
+
+  it("passes the unknown chain slug through to the where clause (no 404)", async () => {
+    authMock.mockResolvedValue(null);
+    findManyMock.mockResolvedValue([]);
+    countMock.mockResolvedValue(0);
+
+    await GET(req("?chain=doesnotexist"));
+
+    const where = findManyMock.mock.calls[0][0].where;
+    // The AND array should include the chain filter with the unknown slug
+    const chainFilter = where.AND.find(
+      (clause: Record<string, unknown>) => clause.chain !== undefined,
+    );
+    expect(chainFilter).toEqual({ chain: { slug: { in: ["doesnotexist"] } } });
+  });
 });

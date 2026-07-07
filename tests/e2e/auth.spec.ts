@@ -26,7 +26,7 @@ test.describe("auth", () => {
   test("user can log in", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel(/email/i).fill("you@stash.it");
-    await page.getByLabel(/password/i).fill("hunter22");
+    await page.getByLabel(/password/i).fill("testpassword123");
     await page.getByRole("button", { name: /^sign in$/i }).click();
     await expect(page).toHaveURL(/\/dashboard/);
   });

@@ -37,6 +37,11 @@ export default defineConfig({
       // Throwaway test-only secret so NextAuth can sign/verify session JWTs in
       // the Playwright dev server. Never use this value in production.
       AUTH_SECRET: "playwright-e2e-test-secret-do-not-use-in-prod",
+      // Enables the credentials bypass in authorize() for MSW-backed e2e tests.
+      // The fixture pair (you@stash.it / testpassword123) returns user_demo.
+      // Never set this in production — the bypass has a NODE_ENV !== "production"
+      // guard as well.
+      AUTH_BYPASS_FOR_PLAYWRIGHT: "1",
     },
   },
 });

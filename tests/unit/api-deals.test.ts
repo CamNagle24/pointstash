@@ -92,3 +92,49 @@ describe("GET /api/deals — hybrid feed", () => {
     expect(chainFilter).toEqual({ chain: { slug: { in: ["doesnotexist"] } } });
   });
 });
+
+describe("GET /api/deals — ?source= filter", () => {
+  it("adds a source filter when ?source=LLM is provided", async () => {
+    authMock.mockResolvedValue(null);
+
+    await GET(req("?source=LLM"));
+
+    const where = findManyMock.mock.calls[0][0].where;
+    const sourceFilter = where.AND.find(
+      (clause: Record<string, unknown>) => clause.source !== undefined,
+    );
+    expect(sourceFilter).toEqual({ source: "LLM" });
+  });
+
+  it("adds a source filter when ?source=EXTENSION is provided", async () => {
+    authMock.mockResolvedValue(null);
+
+    await GET(req("?source=EXTENSION"));
+
+    const where = findManyMock.mock.calls[0][0].where;
+    const sourceFilter = where.AND.find(
+      (clause: Record<string, unknown>) => clause.source !== undefined,
+    );
+    expect(sourceFilter).toEqual({ source: "EXTENSION" });
+  });
+
+  it("returns 400 for an unknown source value without touching the db", async () => {
+    authMock.mockResolvedValue(null);
+
+    const res = await GET(req("?source=BOGUS"));
+    expect(res.status).toBe(400);
+    expect(findManyMock).not.toHaveBeenCalled();
+  });
+
+  it("omits the source filter when ?source= is not provided", async () => {
+    authMock.mockResolvedValue(null);
+
+    await GET(req());
+
+    const where = findManyMock.mock.calls[0][0].where;
+    const sourceFilter = where.AND.find(
+      (clause: Record<string, unknown>) => clause.source !== undefined,
+    );
+    expect(sourceFilter).toBeUndefined();
+  });
+});

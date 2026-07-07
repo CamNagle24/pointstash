@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 
 const dealTypeEnum = z.enum(["APP_EXCLUSIVE", "IN_STORE", "ONLINE", "REWARD_MEMBER"]);
 const sortEnum = z.enum(["expiring", "newest", "value"]);
+const dealSourceEnum = z.enum(["MANUAL", "LLM", "AGGREGATOR", "EXTENSION"]);
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,6 +24,12 @@ export async function GET(req: NextRequest) {
     const sortParsed = sortEnum.safeParse(sortRaw);
     if (!sortParsed.success) {
       return errorJson("Invalid sort value", 400);
+    }
+
+    const sourceParam = url.searchParams.get("source");
+    const sourceParsed = sourceParam !== null ? dealSourceEnum.safeParse(sourceParam) : null;
+    if (sourceParsed !== null && !sourceParsed.success) {
+      return errorJson("Invalid source value", 400);
     }
 
     const chains = chainsParam?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
@@ -50,6 +57,7 @@ export async function GET(req: NextRequest) {
           : []),
         ...(chains.length > 0 ? [{ chain: { slug: { in: chains } } }] : []),
         ...(types.length > 0 ? [{ dealType: { in: types } }] : []),
+        ...(sourceParsed?.success ? [{ source: sourceParsed.data }] : []),
       ],
     };
 

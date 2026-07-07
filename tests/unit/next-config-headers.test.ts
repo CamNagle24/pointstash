@@ -20,4 +20,48 @@ describe("next.config headers()", () => {
     expect(rules).toHaveLength(1);
     expect(rules![0].source).toBe("/:path*");
   });
+
+  it("includes a Content-Security-Policy header on /:path*", async () => {
+    const rules = await nextConfig.headers?.();
+    const allHeaders = rules!.flatMap((rule) => rule.headers);
+    const byKey = Object.fromEntries(allHeaders.map((h) => [h.key, h.value]));
+
+    expect(byKey["Content-Security-Policy"]).toBeTruthy();
+  });
+
+  it("CSP includes default-src 'self'", async () => {
+    const rules = await nextConfig.headers?.();
+    const allHeaders = rules!.flatMap((rule) => rule.headers);
+    const byKey = Object.fromEntries(allHeaders.map((h) => [h.key, h.value]));
+    const csp: string = byKey["Content-Security-Policy"];
+
+    expect(csp).toContain("default-src 'self'");
+  });
+
+  it("CSP includes frame-ancestors 'none'", async () => {
+    const rules = await nextConfig.headers?.();
+    const allHeaders = rules!.flatMap((rule) => rule.headers);
+    const byKey = Object.fromEntries(allHeaders.map((h) => [h.key, h.value]));
+    const csp: string = byKey["Content-Security-Policy"];
+
+    expect(csp).toContain("frame-ancestors 'none'");
+  });
+
+  it("CSP includes object-src 'none'", async () => {
+    const rules = await nextConfig.headers?.();
+    const allHeaders = rules!.flatMap((rule) => rule.headers);
+    const byKey = Object.fromEntries(allHeaders.map((h) => [h.key, h.value]));
+    const csp: string = byKey["Content-Security-Policy"];
+
+    expect(csp).toContain("object-src 'none'");
+  });
+
+  it("CSP includes worker-src 'self' (Serwist service worker)", async () => {
+    const rules = await nextConfig.headers?.();
+    const allHeaders = rules!.flatMap((rule) => rule.headers);
+    const byKey = Object.fromEntries(allHeaders.map((h) => [h.key, h.value]));
+    const csp: string = byKey["Content-Security-Policy"];
+
+    expect(csp).toContain("worker-src 'self'");
+  });
 });

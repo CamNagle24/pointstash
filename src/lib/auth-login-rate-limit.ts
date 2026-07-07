@@ -12,6 +12,12 @@ export function hashEmail(email: string): string {
 /** Returns true when the IP or email has hit the failed-login cap. */
 export async function isLoginRateLimited(ipHash: string, emailHash: string): Promise<boolean> {
   const window = new Date(Date.now() - WINDOW_MS);
+
+  // Prune rows older than the window before counting — fire-and-forget so it
+  // never delays the hot path. The count queries below already filter by
+  // createdAt > window, so pruning is purely table maintenance.
+  void db.loginAttempt.deleteMany({ where: { createdAt: { lt: window } } });
+
   const [byIp, byEmail] = await Promise.all([
     db.loginAttempt.count({ where: { ipHash, createdAt: { gt: window } } }),
     db.loginAttempt.count({ where: { emailHash, createdAt: { gt: window } } }),

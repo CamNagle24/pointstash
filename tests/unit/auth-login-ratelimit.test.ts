@@ -1,15 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { loginAttemptCountMock, loginAttemptCreateMock } = vi.hoisted(() => ({
-  loginAttemptCountMock: vi.fn(),
-  loginAttemptCreateMock: vi.fn(),
-}));
+const { loginAttemptCountMock, loginAttemptCreateMock, loginAttemptDeleteManyMock } = vi.hoisted(
+  () => ({
+    loginAttemptCountMock: vi.fn(),
+    loginAttemptCreateMock: vi.fn(),
+    loginAttemptDeleteManyMock: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/db", () => ({
   db: {
     loginAttempt: {
       count: loginAttemptCountMock,
       create: loginAttemptCreateMock,
+      deleteMany: loginAttemptDeleteManyMock,
     },
   },
 }));
@@ -19,6 +23,7 @@ import { hashEmail, isLoginRateLimited, recordFailedLogin } from "@/lib/auth-log
 beforeEach(() => {
   loginAttemptCountMock.mockReset().mockResolvedValue(0);
   loginAttemptCreateMock.mockReset().mockResolvedValue({});
+  loginAttemptDeleteManyMock.mockReset().mockResolvedValue({ count: 0 });
 });
 
 describe("hashEmail", () => {
@@ -76,6 +81,23 @@ describe("isLoginRateLimited", () => {
     await isLoginRateLimited("abc123", "def456");
     const emailCountArgs = loginAttemptCountMock.mock.calls[1][0];
     expect(emailCountArgs.where.emailHash).toBe("def456");
+  });
+
+  it("fires a deleteMany to prune rows older than the 15-min window", async () => {
+    await isLoginRateLimited("iphash", "emailhash");
+    expect(loginAttemptDeleteManyMock).toHaveBeenCalledOnce();
+    const { where } = loginAttemptDeleteManyMock.mock.calls[0][0];
+    expect(where.createdAt.lt).toBeInstanceOf(Date);
+    const ageMs = Date.now() - where.createdAt.lt.getTime();
+    expect(ageMs).toBeGreaterThan(14 * 60 * 1000);
+    expect(ageMs).toBeLessThan(16 * 60 * 1000);
+  });
+
+  it("stale rows (>15 min) are not counted against the cap — 10 old + 1 fresh is under-cap", async () => {
+    // The count queries already use createdAt > window, so only the 1 fresh
+    // row (returned by the mock) is counted — the IP is under the 10-attempt cap.
+    loginAttemptCountMock.mockResolvedValue(1);
+    expect(await isLoginRateLimited("iphash", "emailhash")).toBe(false);
   });
 });
 

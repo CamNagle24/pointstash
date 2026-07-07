@@ -65,3 +65,7 @@ All endpoints live under `/api`. Auth is handled by NextAuth — protected route
 
 - `GET /api/cron/scrape-deals` — Vercel Cron entrypoint (requires `Authorization: Bearer $CRON_SECRET`)
 - `GET /api/cron/deal-reminders` — Vercel Cron entrypoint; emails users about deals expiring soon
+
+## Health
+
+- `GET /api/health` — public; no auth required; returns `{ ok: true, version: string|null, timestamp: <ISO 8601> }`; useful for Vercel uptime checks and load-balancer health probes

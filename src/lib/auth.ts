@@ -34,6 +34,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = credentialsSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
+        // MSW/Playwright bypass — active ONLY when AUTH_BYPASS_FOR_PLAYWRIGHT=1
+        // AND NODE_ENV !== "production" so this never runs in a real deploy.
+        // Never set AUTH_BYPASS_FOR_PLAYWRIGHT in production.
+        if (
+          process.env.AUTH_BYPASS_FOR_PLAYWRIGHT === "1" &&
+          process.env.NODE_ENV !== "production"
+        ) {
+          if (
+            parsed.data.email === "you@stash.it" &&
+            parsed.data.password === "testpassword123"
+          ) {
+            return { id: "user_demo", email: "you@stash.it", name: "You", image: null };
+          }
+          return null;
+        }
+
         const ipHash = hashClientIp(getClientIp(request as Request));
         const emailHash = hashEmail(parsed.data.email);
 

@@ -4,8 +4,14 @@ All endpoints live under `/api`. Auth is handled by NextAuth — protected route
 
 ## Auth
 
-- `GET|POST /api/auth/[...nextauth]` — NextAuth handler (sign-in, callbacks, session)
-- `POST /api/auth/signup` — public; `{email, password, name?}`; creates an account, `409` on duplicate email
+- `GET|POST /api/auth/[...nextauth]` — NextAuth handler (sign-in, callbacks, session).
+  Credentials sign-in (`POST` with `email`/`password`) is **rate-limited**: 10 failures
+  per IP and 10 failures per email within any 15-minute window. Both bad-password and
+  rate-limit hits return `401` with the same body (no email-enumeration signal). Each
+  failure is recorded in `LoginAttempt` using a hashed IP and hashed email — raw values
+  are never stored.
+- `POST /api/auth/signup` — public; `{email, password, name?}`; creates an account, `409`
+  on duplicate email. Rate-limited to 5 attempts per IP per hour via `SignupAttempt`.
 - `POST /api/auth/forgot-password` — public; `{email}`; always `200` (anti-enumeration); rate-limited to 3 tokens/user/hour; emails a reset link
 - `POST /api/auth/reset-password` — public; `{token, password}`; consumes a one-time reset token and sets the new password
 

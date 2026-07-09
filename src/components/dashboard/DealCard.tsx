@@ -15,7 +15,7 @@ import {
   discountTypeBadgeVariant,
 } from "@/lib/formatters";
 import { timeUntil, dealHref, formatCurrency } from "@/lib/utils";
-import { isAlmostAffordable } from "@/lib/dashboard";
+import { isAlmostAffordable, urgencyMultiplier, URGENCY_WINDOW_DAYS } from "@/lib/dashboard";
 
 type DealCardProps = {
   chainSlug: ChainId;
@@ -61,6 +61,8 @@ export function DealCard({
   const href = dealHref({ sourceUrl, redeemUrl, anchorText, title }, chain);
   const ttl = timeUntil(expiresAt);
   const expiringSoon = expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 2;
+  // Within the urgency window (7 days) but not yet "expiring soon" (2 days).
+  const urgencyBoost = urgencyMultiplier(expiresAt) > 1 && !expiringSoon;
   const ctaLabel = redeemUrl ? "Redeem" : sourceUrl ? "View deal" : "Open in app";
   // Flag only global (not the user's own) deals that an admin hasn't reviewed.
   // "Yours" already conveys provenance for a user's own synced offers.
@@ -91,6 +93,14 @@ export function DealCard({
             {userId && (
               <Badge variant="success" title="Synced from your account — redeemable now">
                 Yours
+              </Badge>
+            )}
+            {urgencyBoost && (
+              <Badge
+                variant="warning"
+                title={`Expiring within ${URGENCY_WINDOW_DAYS} days — act soon`}
+              >
+                Urgent
               </Badge>
             )}
             {almostAffordable && (

@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import deals from "./fixtures/deals.json";
+import deals from "./fixtures/deals";
 import accountsFixture from "./fixtures/accounts.json";
 import redemptionsFixture from "./fixtures/redemptions.json";
 import chains from "./fixtures/chains.json";

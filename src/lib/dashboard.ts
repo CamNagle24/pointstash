@@ -2,6 +2,37 @@ import type { ChainAccount } from "@/types/account";
 import type { RedemptionOption } from "@/types/redemption";
 import type { Deal } from "@/types/deal";
 
+/** Urgency window: the final N days before a deal expires. */
+export const URGENCY_WINDOW_DAYS = 7;
+/** Max multiplier at the moment of expiry (or past expiry). */
+export const URGENCY_MAX_MULTIPLIER = 3;
+
+/**
+ * Returns a multiplier that ramps linearly from 1 (outside the urgency window)
+ * to 3 (at or past expiry) over the final 7 days before a deal expires.
+ * Returns 1 when expiresAt is null/undefined.
+ */
+export function urgencyMultiplier(expiresAt: Date | null | undefined): number {
+  if (expiresAt == null) return 1;
+  const msRemaining = expiresAt.getTime() - Date.now();
+  const msWindow = URGENCY_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  if (msRemaining >= msWindow) return 1;
+  if (msRemaining <= 0) return URGENCY_MAX_MULTIPLIER;
+  const fraction = 1 - msRemaining / msWindow;
+  return 1 + fraction * (URGENCY_MAX_MULTIPLIER - 1);
+}
+
+/**
+ * Urgency-weighted score for ranking. A deal expiring soon scores higher than
+ * a deal with the same CPP but further-off expiry.
+ */
+export function urgencyScore(
+  centsPerPoint: number,
+  expiresAt: Date | null | undefined,
+): number {
+  return centsPerPoint * urgencyMultiplier(expiresAt);
+}
+
 /**
  * For a given chain, return the redemption with the highest cents-per-point.
  * That's the user's "best deal" — what we surface on each account card.

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { getSessionCookie } from "./helpers/session";
 
 test.describe("auth", () => {
   test("login page renders the sign-in form", async ({ page }) => {
@@ -40,9 +41,29 @@ test.describe("auth", () => {
     expect(url.searchParams.get("from")).toBe("/dashboard");
   });
 
-  test.fixme("user can log out", async ({ page }) => {
+  test("user can log out", async ({ page }) => {
+    // Set a valid NextAuth JWT cookie so the middleware accepts the /dashboard
+    // request — identical to what NextAuth issues on real sign-in.
+    const sessionCookie = await getSessionCookie();
+    await page.context().addCookies([sessionCookie]);
+    await page.setViewportSize({ width: 1280, height: 900 });
+
     await page.goto("/dashboard");
+    // Sidebar renders the sign-out button (aria-label) when not collapsed.
+    await expect(page.getByRole("button", { name: /sign out/i })).toBeVisible();
     await page.getByRole("button", { name: /sign out/i }).click();
     await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("authenticated user can access /dashboard", async ({ page }) => {
+    const sessionCookie = await getSessionCookie();
+    await page.context().addCookies([sessionCookie]);
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    await page.goto("/dashboard");
+    // Middleware lets the request through; page renders without redirect.
+    await expect(page).toHaveURL(/\/dashboard/);
+    // The sidebar nav is the key landmark that proves the shell rendered.
+    await expect(page.getByRole("navigation")).toBeVisible();
   });
 });

@@ -40,9 +40,14 @@ test.describe("auth", () => {
     expect(url.searchParams.get("from")).toBe("/dashboard");
   });
 
-  test.fixme("user can log out", async ({ page }) => {
+  test("user can log out", async ({ page }) => {
+    // Desktop viewport ensures the sidebar (and its sign-out button) is visible
+    // and expanded rather than collapsed into the mobile drawer.
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/dashboard");
-    await page.getByRole("button", { name: /sign out/i }).click();
+    const signOutBtn = page.getByRole("button", { name: /sign out/i });
+    await expect(signOutBtn).toBeVisible({ timeout: 5_000 });
+    await signOutBtn.click();
     await expect(page).toHaveURL(/\/login/);
   });
 });

@@ -19,7 +19,7 @@ Single Next.js 15 app (App Router + Server Actions). Prisma/Postgres data layer
 - **Value engine** — ranks redemptions by cents-per-point.
 
 ## Tests
-Vitest (~40 unit tests) + Playwright E2E + MSW (used in dev too).
+Vitest (627+ unit tests across 70+ files — see CI output for the current count) + Playwright E2E + MSW (used in dev too).
 
 ## Known gaps (fuel for TASKS.md)
 - Uneven scraper coverage; OCR edge cases; cents-per-point ranking under-tested; stub connectors not yet integrated with real loyalty APIs.

@@ -61,6 +61,10 @@ All endpoints live under `/api`. Auth is handled by NextAuth — protected route
 
 - `GET /api/unsubscribe?token=...` — public, stateless HMAC token (no session); turns off `notifyExpiring` and returns an HTML confirmation page
 
+## Health
+
+- `GET /api/health` — public; no auth required; returns `{ ok: true, version, timestamp }` — useful for Vercel uptime checks and load-balancer health probes
+
 ## Cron
 
 - `GET /api/cron/scrape-deals` — Vercel Cron entrypoint (requires `Authorization: Bearer $CRON_SECRET`)

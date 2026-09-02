@@ -31,6 +31,19 @@ test.describe("auth", () => {
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
+  test("authenticated user can access /dashboard", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByLabel(/email/i).fill("you@stash.it");
+    await page.getByLabel(/password/i).fill("hunter22");
+    await page.getByRole("button", { name: /^sign in$/i }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    // The sidebar nav or "Link your first chain" empty-state should be visible,
+    // confirming the dashboard shell rendered rather than bouncing back to /login.
+    await expect(
+      page.getByRole("navigation").or(page.getByText(/link your first chain/i)),
+    ).toBeVisible();
+  });
+
   test("unauthenticated user is redirected to login", async ({ page }) => {
     await page.goto("/dashboard");
     // middleware.ts redirects to /login?from=<path> — check both the destination

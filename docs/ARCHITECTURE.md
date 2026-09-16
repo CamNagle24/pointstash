@@ -13,7 +13,7 @@ Single Next.js 15 app (App Router + Server Actions). Prisma/Postgres data layer
   Helpers in `src/lib/api.ts` (`requireAuth`, `isCronRequest`, `errorJson`, `chainSelect`).
 - **Data** — `src/lib/db.ts` (Prisma singleton), `prisma/schema.prisma` is the source of
   truth, `prisma/seed.ts` real redemption data.
-- **Scraping** — `src/lib/scrapers/` `BaseScraper` + 10 chain scrapers (see `src/lib/scrapers/index.ts` for the live count — it drifts as scrapers are added) + registry; `ocr.ts`
+- **Scraping** — `src/lib/scrapers/` `BaseScraper` + chain scrapers (see `docs/SCRAPER_GUIDE.md` for the full list) + registry; `ocr.ts`
   per-chain regex extraction with OCR-artifact correction; `connectors/` stubs for future
   chain-API integrations.
 - **Value engine** — ranks redemptions by cents-per-point.

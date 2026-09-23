@@ -11,10 +11,13 @@ export function hashEmail(email: string): string {
 
 /** Returns true when the IP or email has hit the failed-login cap. */
 export async function isLoginRateLimited(ipHash: string, emailHash: string): Promise<boolean> {
-  const window = new Date(Date.now() - WINDOW_MS);
+  const cutoff = new Date(Date.now() - WINDOW_MS);
+  // Fire-and-forget cleanup: rows older than the window are useless. A failure
+  // here is benign — the count queries below already filter by createdAt.
+  void db.loginAttempt.deleteMany({ where: { createdAt: { lt: cutoff } } });
   const [byIp, byEmail] = await Promise.all([
-    db.loginAttempt.count({ where: { ipHash, createdAt: { gt: window } } }),
-    db.loginAttempt.count({ where: { emailHash, createdAt: { gt: window } } }),
+    db.loginAttempt.count({ where: { ipHash, createdAt: { gt: cutoff } } }),
+    db.loginAttempt.count({ where: { emailHash, createdAt: { gt: cutoff } } }),
   ]);
   return byIp >= MAX_FAILED_LOGINS_PER_IP || byEmail >= MAX_FAILED_LOGINS_PER_EMAIL;
 }

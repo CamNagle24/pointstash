@@ -8,7 +8,7 @@ import { CHAINS, CHAIN_IDS } from "@/lib/constants";
 import { useDeals } from "@/hooks/useDeals";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useRedemptions } from "@/hooks/useRedemptions";
-import { estimatedDealValueCents } from "@/lib/dashboard";
+import { estimatedDealValueCents, bestRedemptionFor, urgencyScore } from "@/lib/dashboard";
 import { syncOffers } from "@/lib/extension-bridge";
 import { DealCard } from "@/components/dashboard/DealCard";
 import { DealsCalendar } from "@/components/dashboard/DealsCalendar";
@@ -223,6 +223,20 @@ function DealsPageContent() {
       return (time(a.expiresAt) ?? Infinity) - (time(b.expiresAt) ?? Infinity);
     });
   }, [filtered, sortMode]);
+
+  // The deal with the highest urgency-weighted score gets the "Top Pick" badge.
+  // score = bestCPP(chain) × urgencyMultiplier(deal.expiresAt); chains with no
+  // redemption data are excluded so the badge only appears when meaningful.
+  const topPickDealId = React.useMemo(() => {
+    let best: { id: string; score: number } | null = null;
+    for (const d of sorted) {
+      const cpp = bestRedemptionFor(d.chainId, redemptions)?.centsPerPoint ?? 0;
+      if (cpp === 0) continue;
+      const score = urgencyScore(cpp, d.expiresAt);
+      if (!best || score > best.score) best = { id: d.id, score };
+    }
+    return best?.id ?? null;
+  }, [sorted, redemptions]);
 
   const toggleChain = (id: ChainId) => {
     setChainFilter((prev) => {
@@ -451,6 +465,7 @@ function DealsPageContent() {
               pointsCost={deal.pointsCost}
               pointsBalance={pointsByChain[deal.chain?.slug ?? ""] ?? null}
               redemptionValueCents={valueCentsByDeal[deal.id] ?? null}
+              isTopPick={deal.id === topPickDealId}
               index={i}
             />
           ))}

@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { loginAttemptCountMock, loginAttemptCreateMock, loginAttemptDeleteManyMock } = vi.hoisted(
-  () => ({
-    loginAttemptCountMock: vi.fn(),
-    loginAttemptCreateMock: vi.fn(),
-    loginAttemptDeleteManyMock: vi.fn(),
-  }),
-);
+const { loginAttemptCountMock, loginAttemptCreateMock, loginAttemptDeleteManyMock } = vi.hoisted(() => ({
+  loginAttemptCountMock: vi.fn(),
+  loginAttemptCreateMock: vi.fn(),
+  loginAttemptDeleteManyMock: vi.fn(),
+}));
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -83,19 +81,21 @@ describe("isLoginRateLimited", () => {
     expect(emailCountArgs.where.emailHash).toBe("def456");
   });
 
-  it("fires a deleteMany to prune rows older than the 15-min window", async () => {
+  it("fires deleteMany to prune rows older than the window", async () => {
     await isLoginRateLimited("iphash", "emailhash");
     expect(loginAttemptDeleteManyMock).toHaveBeenCalledOnce();
-    const { where } = loginAttemptDeleteManyMock.mock.calls[0][0];
-    expect(where.createdAt.lt).toBeInstanceOf(Date);
-    const ageMs = Date.now() - where.createdAt.lt.getTime();
-    expect(ageMs).toBeGreaterThan(14 * 60 * 1000);
-    expect(ageMs).toBeLessThan(16 * 60 * 1000);
+    const deleteArgs = loginAttemptDeleteManyMock.mock.calls[0][0];
+    expect(deleteArgs.where.createdAt.lt).toBeInstanceOf(Date);
+    const cutoffMs = Date.now() - deleteArgs.where.createdAt.lt.getTime();
+    expect(cutoffMs).toBeGreaterThan(14 * 60 * 1000);
+    expect(cutoffMs).toBeLessThan(16 * 60 * 1000);
   });
 
-  it("stale rows (>15 min) are not counted against the cap — 10 old + 1 fresh is under-cap", async () => {
-    // The count queries already use createdAt > window, so only the 1 fresh
-    // row (returned by the mock) is counted — the IP is under the 10-attempt cap.
+  it("stale attempts (older than 15 min) are not counted against the cap", async () => {
+    // Simulate 10 stale attempts + 1 fresh attempt for an IP.
+    // The count mock already filters by createdAt.gt (same cutoff as deleteMany),
+    // so regardless of how many stale rows exist in the real DB, the count query
+    // only ever sees the fresh ones. Mock returns 1 fresh IP count to assert under-cap.
     loginAttemptCountMock.mockResolvedValue(1);
     expect(await isLoginRateLimited("iphash", "emailhash")).toBe(false);
   });

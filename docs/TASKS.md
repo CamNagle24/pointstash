@@ -82,7 +82,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [x] Add stub `BaseConnector` entries for the 7 chains missing from the connectors registry — `pancheros`, `dairyqueen`, `culvers`, `jimmyjohns`, `buffalowildwings`, `kfc`, and `pandaexpress` all resolve via `getConnector`; `tests/unit/connector-registry.test.ts` parametrizes over every `CHAINS` key so a future un-registered chain fails the suite.
 - [x] Add OCR point-pattern regexes for chains using the generic fallback — `chipotle`, `pancheros`, `dairyqueen`, `culvers`, `jimmyjohns`, `buffalowildwings`, `kfc`, and `pandaexpress` all have chain-specific entries in `POINTS_PATTERNS` (`src/lib/ocr.ts`).
 - [x] Add a bespoke Cheerio scraper for `chipotle` — `src/lib/scrapers/chipotle.ts`, registered in `src/lib/scrapers/index.ts`, tested in `tests/unit/scrapers/chipotle.test.ts`.
-- [x] Migrate off deprecated `next lint` — `package.json`'s `lint` script is now `"eslint ."`.
+- [x] Migrate off deprecated `next lint` — `package.json`'s `lint` script is now `"eslint ".`.
 - [x] Fix per-chain error isolation in deal-scraping routes — shared scan-and-replace loop isolates each chain's `replaceAutoDeals` failure so one chain's error doesn't abort the rest.
 - [x] Return 400 (not 500) for a corrupt or spoofed image upload in `POST /api/upload` — `src/app/api/upload/route.ts` catches the `sharp()` decode call specifically and returns 400 ("Invalid image data").
 - [x] Add standard security response headers — `next.config.ts` ships `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy` on all routes.

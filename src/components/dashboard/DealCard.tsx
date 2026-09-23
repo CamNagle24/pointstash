@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, Clock, ShieldAlert, Coins, Check } from "lucide-react";
+import { ExternalLink, Clock, ShieldAlert, Coins, Check, Star } from "lucide-react";
 import type { ChainId } from "@/types/chain";
 import { CHAINS } from "@/lib/constants";
 import { ChainLogo } from "@/components/ui/ChainLogo";
@@ -37,6 +37,8 @@ type DealCardProps = {
   pointsBalance?: number | null;
   /** Estimated cash value (cents) of the points cost at the chain's best rate. */
   redemptionValueCents?: number | null;
+  /** Highest urgency-weighted score across the current deal feed. */
+  isTopPick?: boolean;
   index?: number;
 };
 
@@ -55,6 +57,7 @@ export function DealCard({
   pointsCost,
   pointsBalance,
   redemptionValueCents,
+  isTopPick = false,
   index = 0,
 }: DealCardProps) {
   const chain = CHAINS[chainSlug];
@@ -88,6 +91,12 @@ export function DealCard({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+            {isTopPick && (
+              <Badge variant="info" className="gap-1" title="Best urgency-weighted value right now">
+                <Star className="h-3 w-3" />
+                Top Pick
+              </Badge>
+            )}
             {userId && (
               <Badge variant="success" title="Synced from your account — redeemable now">
                 Yours

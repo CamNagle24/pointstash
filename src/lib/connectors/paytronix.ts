@@ -1,22 +1,23 @@
 import { BaseConnector } from "./base";
 
 export type PaytronixConfig = {
-  /** Base URL for this brand's Paytronix-hosted endpoints. */
   baseUrl: string;
-  /** Paytronix brand identifier used in API paths. */
   brandId: string;
 };
 
 /**
- * Shared base for chains whose loyalty program runs on the Paytronix platform.
- * Concrete subclasses supply `chainSlug` and `authLabel`, and override methods
- * once real endpoints are reverse-engineered.
+ * Base class for Paytronix-hosted loyalty programs. Parametrize with the
+ * brand-specific endpoint base URL and vendor brand ID; the subclass sets
+ * implemented=true once the network integration is wired up (step 7 of
+ * the graduation plan in docs/DECISIONS.md).
  */
 export abstract class PaytronixConnector extends BaseConnector {
-  protected readonly config: PaytronixConfig;
+  readonly config: PaytronixConfig;
 
   constructor(config: PaytronixConfig) {
     super();
+    if (!config.baseUrl) throw new Error("PaytronixConnector: config.baseUrl is required");
+    if (!config.brandId) throw new Error("PaytronixConnector: config.brandId is required");
     this.config = config;
   }
 }

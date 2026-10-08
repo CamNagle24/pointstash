@@ -1,18 +1,21 @@
-import { BaseConnector } from "./base";
+import { PaytronixConnector } from "./paytronix";
 
 /**
- * Pancheros Rewards is run through a third-party loyalty vendor (Paytronix)
- * rather than a first-party API:
+ * Pancheros Rewards is hosted on Paytronix:
  *   - https://www.pancheros.com/api/paytronix/login   (email/pwd → session cookie)
  *   - https://www.pancheros.com/api/paytronix/balance (points balance)
- *
- * Paytronix-hosted programs are common among smaller chains — once this
- * connector is real, the same shape should cover other Paytronix brands.
  */
-export class PancherosConnector extends BaseConnector {
+export class PancherosConnector extends PaytronixConnector {
   readonly chainSlug = "pancheros";
   readonly authLabel = "Email + password";
   readonly implemented = false;
+
+  constructor() {
+    super({
+      baseUrl: "https://www.pancheros.com/api/paytronix",
+      brandId: "pancheros",
+    });
+  }
 }
 
 export const pancherosConnector = new PancherosConnector();

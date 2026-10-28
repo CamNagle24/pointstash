@@ -20,4 +20,17 @@ describe("next.config headers()", () => {
     expect(rules).toHaveLength(1);
     expect(rules![0].source).toBe("/:path*");
   });
+
+  it("includes a Content-Security-Policy header on /:path*", async () => {
+    const rules = await nextConfig.headers?.();
+    const allHeaders = rules!.flatMap((rule) => rule.headers);
+    const byKey = Object.fromEntries(allHeaders.map((h) => [h.key, h.value]));
+
+    const csp = byKey["Content-Security-Policy"];
+    expect(csp).toBeDefined();
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("worker-src 'self'");
+  });
 });
